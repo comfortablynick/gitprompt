@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/subchen/go-log"
+	log "github.com/subchen/go-log"
 )
 
 func consumeNext(s *bufio.Scanner) string {
@@ -43,7 +43,7 @@ func (ri *RepoInfo) ParseLine(line string) error {
 	for s.Scan() {
 		switch s.Text() {
 		case "#":
-			ri.parseBranchInfo(s)
+			_ = ri.parseBranchInfo(s)
 		case "1":
 			ri.parseTrackedFile(s)
 		case "2":

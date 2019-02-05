@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jessevdk/go-flags"
-	"github.com/subchen/go-log"
+	flags "github.com/jessevdk/go-flags"
+	log "github.com/subchen/go-log"
 )
 
 const (
@@ -79,10 +79,20 @@ func init() {
 	extraArgs, err := parser.ParseArgs(args)
 
 	if err != nil {
-		if !flags.WroteHelp(err) {
-			parser.WriteHelp(os.Stderr)
+		if _, ok := err.(*flags.Error); ok {
+			typ := err.(*flags.Error).Type
+			switch {
+			case typ == flags.ErrHelp:
+				parser.WriteHelp(os.Stdout)
+			case typ == flags.ErrCommandRequired && len(extraArgs[0]) == 0:
+				parser.WriteHelp(os.Stdout)
+			default:
+				log.Info(err.Error() + string(typ))
+				parser.WriteHelp(os.Stdout)
+			}
+		} else {
+			log.Fatalf("Exiting: %s", err.Error())
 		}
-		os.Exit(1)
 	}
 
 	// Get log level
@@ -104,7 +114,7 @@ func init() {
 		os.Exit(0)
 	}
 	if cwd == "" {
-		cwd, _ = os.Getwd()
+		cwd, _ = os.Getwd() // #nosec
 	}
 }
 

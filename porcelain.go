@@ -8,7 +8,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/subchen/go-log"
+	log "github.com/subchen/go-log"
 )
 
 // GitArea holds status info
