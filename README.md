@@ -3,6 +3,8 @@ gitprompt
 
 Parses `git status --porcelain=v2 --branch` and outputs a nicely formatted string, similar to vcprompt. It can also output line-delimited status info that can be parsed by your shell prompt.
 
+It is forked from [robertgzr/porcelain](https://github.com/robertgzr/porcelain), but focused on the status parsing rather than color formatting.
+
 The minimum git version for porcelain v2 with `--branch` is `v2.13.2`.
 
 ## Output explained:
