@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
+
 	"os"
 	"path"
 
-	"github.com/robertgzr/color"
+	"github.com/subchen/go-log"
 )
 
+// GitArea holds status info
 type GitArea struct {
 	modified int
 	added    int
@@ -39,7 +40,8 @@ func (a *GitArea) hasChanged() bool {
 	return changed
 }
 
-type PorcInfo struct {
+// RepoInfo holds data about the repo
+type RepoInfo struct {
 	workingDir string
 
 	branch   string
@@ -56,8 +58,8 @@ type PorcInfo struct {
 	Staged   GitArea
 }
 
-func (pi *PorcInfo) hasUnmerged() bool {
-	if pi.unmerged > 0 {
+func (ri *RepoInfo) hasUnmerged() bool {
+	if ri.unmerged > 0 {
 		return true
 	}
 	gitDir, err := PathToGitDir(cwd)
@@ -72,94 +74,72 @@ func (pi *PorcInfo) hasUnmerged() bool {
 		}
 		log.Printf("error reading MERGE_HEAD: %s", err)
 		return false
-	} else {
-		return true
 	}
+	return true
 }
-func (pi *PorcInfo) hasModified() bool {
-	return pi.Unstaged.hasChanged()
+func (ri *RepoInfo) hasModified() bool {
+	return ri.Unstaged.hasChanged()
 }
-func (pi *PorcInfo) isDirty() bool {
-	return pi.Staged.hasChanged()
+func (ri *RepoInfo) isDirty() bool {
+	return ri.Staged.hasChanged()
 }
 
-func (pi *PorcInfo) Debug() string {
-	return fmt.Sprintf("%#+v", pi)
+// Debug prints repo info
+func (ri *RepoInfo) Debug() string {
+	return fmt.Sprintf("%#+v", ri)
 }
 
 // Fmt formats the output for the shell
 // TODO should be configurable by the user
 //
-func (pi *PorcInfo) Fmt() string {
-	log.Printf("formatting output: %s", pi.Debug())
+func (ri *RepoInfo) Fmt() string {
+	log.Printf("formatting output: %s", ri.Debug())
 
 	var (
-		branchGlyph   string = ""
-		modifiedGlyph string = "Δ"
+		branchGlyph   = ""
+		modifiedGlyph = "Δ"
 		// deletedGlyph   string = "＊"
-		dirtyGlyph     string = "✘"
-		cleanGlyph     string = "✔"
-		untrackedGlyph string = "?"
-		unmergedGlyph  string = "‼"
-		aheadArrow     string = "↑"
-		behindArrow    string = "↓"
+		dirtyGlyph     = "✘"
+		cleanGlyph     = "✔"
+		untrackedGlyph = "?"
+		unmergedGlyph  = "‼"
+		aheadArrow     = "↑"
+		behindArrow    = "↓"
 	)
-
-	if noColorFlag {
-		color.NoColor = true
-	} else {
-		color.NoColor = false
-		color.EscapeBashPrompt = bashFmtFlag
-		color.EscapeZshPrompt = zshFmtFlag
-		color.TmuxMode = tmuxFmtFlag
-	}
-	branchFmt := color.New(color.FgBlue).SprintFunc()
-	commitFmt := color.New(color.FgGreen, color.Italic).SprintFunc()
-
-	aheadFmt := color.New(color.Faint, color.BgYellow, color.FgBlack).SprintFunc()
-	behindFmt := color.New(color.Faint, color.BgRed, color.FgWhite).SprintFunc()
-
-	modifiedFmt := color.New(color.FgBlue).SprintFunc()
-	// deletedFmt := color.New(color.FgYellow).SprintFunc()
-	dirtyFmt := color.New(color.FgRed).SprintFunc()
-	cleanFmt := color.New(color.FgGreen).SprintFunc()
-
-	untrackedFmt := color.New(color.Faint).SprintFunc()
-	unmergedFmt := color.New(color.FgCyan).SprintFunc()
 
 	return fmt.Sprintf("%s %s@%s %s %s %s",
 		branchGlyph,
-		branchFmt(pi.branch),
+		ri.branch,
 		func() string {
-			if pi.commit == "(initial)" {
-				return commitFmt(pi.commit)
+			if ri.commit == "(initial)" {
+				return ri.commit
 			}
-			return commitFmt(pi.commit[:7])
+			return ri.commit[:7]
 		}(),
 		func() string {
 			var buf bytes.Buffer
-			if pi.ahead > 0 {
-				buf.WriteString(aheadFmt(" ", aheadArrow, pi.ahead, " "))
+			if ri.ahead > 0 {
+				buf.WriteString(fmt.Sprintf(" %s%d ", aheadArrow, ri.ahead))
 			}
-			if pi.behind > 0 {
-				buf.WriteString(behindFmt(" ", behindArrow, pi.behind, " "))
+			if ri.behind > 0 {
+				buf.WriteString(fmt.Sprintf(" %s%d ", behindArrow, ri.behind))
 			}
 			return buf.String()
 		}(),
 		func() string {
 			var buf bytes.Buffer
-			if pi.untracked > 0 {
-				buf.WriteString(untrackedFmt(untrackedGlyph))
+			if ri.untracked > 0 {
+				buf.WriteString(untrackedGlyph)
 			} else {
 				buf.WriteRune(' ')
 			}
-			if pi.hasUnmerged() {
-				buf.WriteString(unmergedFmt(unmergedGlyph))
+			if ri.hasUnmerged() {
+				buf.WriteString(unmergedGlyph)
 			} else {
 				buf.WriteRune(' ')
 			}
-			if pi.hasModified() {
-				buf.WriteString(modifiedFmt(modifiedGlyph))
+			if ri.hasModified() {
+				buf.WriteString(modifiedGlyph)
 			} else {
 				buf.WriteRune(' ')
 			}
@@ -168,16 +148,15 @@ func (pi *PorcInfo) Fmt() string {
 		}(),
 		// dirty/clean
 		func() string {
-			if pi.isDirty() {
-				return dirtyFmt(dirtyGlyph)
-			} else {
-				return cleanFmt(cleanGlyph)
+			if ri.isDirty() {
+				return dirtyGlyph
 			}
+			return cleanGlyph
 		}(),
 	)
 }
 
-func run() *PorcInfo {
+func run() *RepoInfo {
 	gitOut, err := GetGitOutput(cwd)
 	if err != nil {
 		log.Printf("error: %s", err)
@@ -188,14 +167,13 @@ func run() *PorcInfo {
 		os.Exit(1)
 	}
 
-	var porcInfo = new(PorcInfo)
-	porcInfo.workingDir = cwd
+	var repoInfo = new(RepoInfo)
+	repoInfo.workingDir = cwd
 
-	if err := porcInfo.ParsePorcInfo(gitOut); err != nil {
-		log.Printf("error: %s", err)
-		fmt.Printf("error: %s", err)
+	if err := repoInfo.ParseRepoInfo(gitOut); err != nil {
+		log.Errorln(err)
 		os.Exit(1)
 	}
 
-	return porcInfo
+	return repoInfo
 }

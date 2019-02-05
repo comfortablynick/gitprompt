@@ -4,17 +4,20 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"log"
 	"os/exec"
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/subchen/go-log"
 )
 
 const notRepoStatus string = "exit status 128"
 
-var ErrNotAGitRepo error = errors.New("not a git repo")
+// ErrNotAGitRepo returned when no repo found
+var ErrNotAGitRepo = errors.New("not a git repo")
 
+// GetGitOutput returns a buffer of git status command output
 func GetGitOutput(cwd string) (io.Reader, error) {
 	if ok, err := IsInsideWorkTree(cwd); err != nil {
 		if err == ErrNotAGitRepo {
@@ -39,6 +42,7 @@ func GetGitOutput(cwd string) (io.Reader, error) {
 	return buf, nil
 }
 
+// PathToGitDir returns parsed root of git repo
 func PathToGitDir(cwd string) (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--absolute-git-dir")
 	cmd.Dir = cwd
@@ -51,10 +55,11 @@ func PathToGitDir(cwd string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
+// IsInsideWorkTree returns bool to indicate if path is inside git tree
 func IsInsideWorkTree(cwd string) (bool, error) {
 	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
 	cmd.Dir = cwd
-	log.Printf("running %q", cmd.Args)
+	log.Debugf("running %q", cmd.Args)
 
 	out, err := cmd.Output()
 	if err != nil {

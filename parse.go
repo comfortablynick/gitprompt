@@ -3,9 +3,10 @@ package main
 import (
 	"bufio"
 	"io"
-	"log"
 	"strconv"
 	"strings"
+
+	"github.com/subchen/go-log"
 )
 
 func consumeNext(s *bufio.Scanner) string {
@@ -15,7 +16,8 @@ func consumeNext(s *bufio.Scanner) string {
 	return ""
 }
 
-func (pi *PorcInfo) ParsePorcInfo(r io.Reader) error {
+// ParseRepoInfo begins parsing data returned from `git status`
+func (ri *RepoInfo) ParseRepoInfo(r io.Reader) error {
 	log.Println("parsing git output")
 
 	var err error
@@ -26,13 +28,14 @@ func (pi *PorcInfo) ParsePorcInfo(r io.Reader) error {
 			continue
 		}
 
-		pi.ParseLine(s.Text())
+		ri.ParseLine(s.Text())
 	}
 
 	return err
 }
 
-func (pi *PorcInfo) ParseLine(line string) error {
+// ParseLine parses each line of `git status` porcelain v2 output
+func (ri *RepoInfo) ParseLine(line string) error {
 	s := bufio.NewScanner(strings.NewReader(line))
 	// switch to a word based scanner
 	s.Split(bufio.ScanWords)
@@ -40,38 +43,38 @@ func (pi *PorcInfo) ParseLine(line string) error {
 	for s.Scan() {
 		switch s.Text() {
 		case "#":
-			pi.parseBranchInfo(s)
+			ri.parseBranchInfo(s)
 		case "1":
-			pi.parseTrackedFile(s)
+			ri.parseTrackedFile(s)
 		case "2":
-			pi.parseRenamedFile(s)
+			ri.parseRenamedFile(s)
 		case "u":
-			pi.unmerged++
+			ri.unmerged++
 		case "?":
-			pi.untracked++
+			ri.untracked++
 		}
 	}
 	return nil
 }
 
-func (pi *PorcInfo) parseBranchInfo(s *bufio.Scanner) (err error) {
+func (ri *RepoInfo) parseBranchInfo(s *bufio.Scanner) (err error) {
 	// uses the word based scanner from ParseLine
 	for s.Scan() {
 		switch s.Text() {
 		case "branch.oid":
-			pi.commit = consumeNext(s)
+			ri.commit = consumeNext(s)
 		case "branch.head":
-			pi.branch = consumeNext(s)
+			ri.branch = consumeNext(s)
 		case "branch.upstream":
-			pi.upstream = consumeNext(s)
+			ri.upstream = consumeNext(s)
 		case "branch.ab":
-			err = pi.parseAheadBehind(s)
+			err = ri.parseAheadBehind(s)
 		}
 	}
 	return err
 }
 
-func (pi *PorcInfo) parseAheadBehind(s *bufio.Scanner) error {
+func (ri *RepoInfo) parseAheadBehind(s *bufio.Scanner) error {
 	// uses the word based scanner from ParseLine
 	for s.Scan() {
 		i, err := strconv.Atoi(s.Text()[1:])
@@ -81,9 +84,9 @@ func (pi *PorcInfo) parseAheadBehind(s *bufio.Scanner) error {
 
 		switch s.Text()[:1] {
 		case "+":
-			pi.ahead = i
+			ri.ahead = i
 		case "-":
-			pi.behind = i
+			ri.behind = i
 		}
 	}
 	return nil
@@ -91,14 +94,13 @@ func (pi *PorcInfo) parseAheadBehind(s *bufio.Scanner) error {
 
 // parseTrackedFile parses the porcelain v2 output for tracked entries
 // doc: https://git-scm.com/docs/git-status#_changed_tracked_entries
-//
-func (pi *PorcInfo) parseTrackedFile(s *bufio.Scanner) error {
+func (ri *RepoInfo) parseTrackedFile(s *bufio.Scanner) error {
 	// uses the word based scanner from ParseLine
 	var index int
 	for s.Scan() {
 		switch index {
 		case 0: // xy
-			pi.parseXY(s.Text())
+			ri.parseXY(s.Text())
 		default:
 			continue
 			// case 1: // sub
@@ -123,35 +125,35 @@ func (pi *PorcInfo) parseTrackedFile(s *bufio.Scanner) error {
 	return nil
 }
 
-func (pi *PorcInfo) parseXY(xy string) error {
+func (ri *RepoInfo) parseXY(xy string) error {
 	switch xy[:1] { // parse staged
 	case "M":
-		pi.Staged.modified++
+		ri.Staged.modified++
 	case "A":
-		pi.Staged.added++
+		ri.Staged.added++
 	case "D":
-		pi.Staged.deleted++
+		ri.Staged.deleted++
 	case "R":
-		pi.Staged.renamed++
+		ri.Staged.renamed++
 	case "C":
-		pi.Staged.copied++
+		ri.Staged.copied++
 	}
 
 	switch xy[1:] { // parse unstaged
 	case "M":
-		pi.Unstaged.modified++
+		ri.Unstaged.modified++
 	case "A":
-		pi.Unstaged.added++
+		ri.Unstaged.added++
 	case "D":
-		pi.Unstaged.deleted++
+		ri.Unstaged.deleted++
 	case "R":
-		pi.Unstaged.renamed++
+		ri.Unstaged.renamed++
 	case "C":
-		pi.Unstaged.copied++
+		ri.Unstaged.copied++
 	}
 	return nil
 }
 
-func (pi *PorcInfo) parseRenamedFile(s *bufio.Scanner) error {
-	return pi.parseTrackedFile(s)
+func (ri *RepoInfo) parseRenamedFile(s *bufio.Scanner) error {
+	return ri.parseTrackedFile(s)
 }
