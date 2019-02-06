@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	Log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 func consumeNext(s *bufio.Scanner) string {
@@ -18,7 +18,7 @@ func consumeNext(s *bufio.Scanner) string {
 
 // ParseRepoInfo begins parsing data returned from `git status`
 func (ri *RepoInfo) ParseRepoInfo(r io.Reader) error {
-	Log.Println("parsing git output")
+	log.Println("parsing git output")
 
 	var err error
 	var s = bufio.NewScanner(r)
@@ -105,20 +105,20 @@ func (ri *RepoInfo) parseTrackedFile(s *bufio.Scanner) error {
 			continue
 			// case 1: // sub
 			// 	if s.Text() != "N..." {
-			// 		Log.Println("is submodule!!!")
+			// 		log.Println("is submodule!!!")
 			// 	}
 			// case 2: // mH - octal file mode in HEAD
-			// 	Log.Println(index, s.Text())
+			// 	log.Println(index, s.Text())
 			// case 3: // mI - octal file mode in index
-			// 	Log.Println(index, s.Text())
+			// 	log.Println(index, s.Text())
 			// case 4: // mW - octal file mode in worktree
-			// 	Log.Println(index, s.Text())
+			// 	log.Println(index, s.Text())
 			// case 5: // hH - object name in HEAD
-			// 	Log.Println(index, s.Text())
+			// 	log.Println(index, s.Text())
 			// case 6: // hI - object name in index
-			// 	Log.Println(index, s.Text())
+			// 	log.Println(index, s.Text())
 			// case 7: // path
-			// 	Log.Println(index, s.Text())
+			// 	log.Println(index, s.Text())
 		}
 		index++
 	}

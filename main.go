@@ -5,21 +5,10 @@ import (
 	"os"
 
 	flags "github.com/jessevdk/go-flags"
-	Log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
-// Log default logger
-// var Log = new(log.Logger)
-
-// Log Global logger
-// var Log = &log.Logger{
-//     Level:     log.WARN,
-//     Formatter: new(formatters.TextFormatter),
-//     Out:       os.Stderr,
-// }
-
 const (
-	logloc  = "/tmp/porcelain.log"
 	version = `
 gitprompt version 0.0.1
 
@@ -28,10 +17,10 @@ gitprompt version 0.0.1
 `
 )
 
-var logLevels = []Log.Level{
-	Log.WarnLevel,
-	Log.InfoLevel,
-	Log.DebugLevel,
+var logLevels = []log.Level{
+	log.WarnLevel,
+	log.InfoLevel,
+	log.DebugLevel,
 }
 
 var cwd string
@@ -46,16 +35,19 @@ type Options struct {
 }
 
 func init() {
-	// log.Default.Level = log.WARN
-	// Log.Level = Log.WarnLevel
-	Log.SetLevel(Log.WarnLevel)
+	log.SetFormatter(&log.TextFormatter{
+		DisableColors:          false,
+		FullTimestamp:          false,
+		DisableLevelTruncation: true,
+	})
+	log.SetLevel(log.WarnLevel)
 
 	// Use cli args if present, else test args
 	args := (func() []string {
 		if len(os.Args) > 1 {
 			return os.Args[1:]
 		}
-		Log.Infoln("Using test arguments")
+		log.Infoln("Using test arguments")
 		return []string{}
 	})()
 
@@ -87,11 +79,11 @@ func init() {
 			case typ == flags.ErrCommandRequired && len(extraArgs[0]) == 0:
 				parser.WriteHelp(os.Stdout)
 			default:
-				Log.Info(err.Error() + string(typ))
+				log.Info(err.Error() + string(typ))
 				parser.WriteHelp(os.Stdout)
 			}
 		} else {
-			Log.Fatalf("Exiting: %s", err.Error())
+			log.Fatalf("Exiting: %s", err.Error())
 		}
 		os.Exit(1)
 	}
@@ -102,12 +94,12 @@ func init() {
 		verbosity = maxLevels - 1
 	}
 
-	Log.SetLevel(logLevels[verbosity])
+	log.SetLevel(logLevels[verbosity])
 
-	Log.Debugf("Raw args:\n%v", args)
-	Log.Debugf("Parsed args:\n%+v", options)
+	log.Debugf("Raw args:\n%v", args)
+	log.Debugf("Parsed args:\n%+v", options)
 	if len(extraArgs) > 0 {
-		Log.Debugf("Remaining args:\n%v", extraArgs)
+		log.Debugf("Remaining args:\n%v", extraArgs)
 	}
 
 	if options.Version {
@@ -120,7 +112,7 @@ func init() {
 }
 
 func main() {
-	Log.Debugf("Running gitprompt in directory %s", cwd)
+	log.Debugf("Running gitprompt in directory %s", cwd)
 
 	// var out string
 	// switch {
@@ -131,5 +123,5 @@ func main() {
 	//         fmt.Println("\nOutside of a repository there will be no output.")
 	//         os.Exit(1)
 	// }
-	fmt.Fprint(os.Stdout, run().Fmt())
+	fmt.Fprintln(os.Stdout, run().Fmt())
 }

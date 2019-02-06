@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	Log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 const notRepoStatus string = "exit status 128"
@@ -23,7 +23,7 @@ func GetGitOutput(cwd string) (io.Reader, error) {
 		if err == ErrNotAGitRepo {
 			return nil, ErrNotAGitRepo
 		}
-		Log.Debugf("error detecting work tree: %s", err)
+		log.Debugf("error detecting work tree: %s", err)
 		return nil, err
 	} else if !ok {
 		return nil, ErrNotAGitRepo
@@ -33,7 +33,7 @@ func GetGitOutput(cwd string) (io.Reader, error) {
 	cmd := exec.Command("git", "status", "--porcelain=v2", "--branch")
 	cmd.Stdout = buf
 	cmd.Dir = cwd
-	Log.Debugf("running %q", cmd.Args)
+	log.Debugf("running %q", cmd.Args)
 
 	if err := cmd.Run(); err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func GetGitOutput(cwd string) (io.Reader, error) {
 func PathToGitDir(cwd string) (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--absolute-git-dir")
 	cmd.Dir = cwd
-	Log.Debugf("running %q", cmd.Args)
+	log.Debugf("running %q", cmd.Args)
 
 	out, err := cmd.Output()
 	if err != nil {
@@ -59,7 +59,7 @@ func PathToGitDir(cwd string) (string, error) {
 func IsInsideWorkTree(cwd string) (bool, error) {
 	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
 	cmd.Dir = cwd
-	Log.Debugf("running %q", cmd.Args)
+	log.Debugf("running %q", cmd.Args)
 
 	out, err := cmd.Output()
 	if err != nil {

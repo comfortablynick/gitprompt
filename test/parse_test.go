@@ -24,7 +24,7 @@ u UU N... 100644 100644 100644 100644 ac51efdc3df4f4fd328d1a02ad05331d8e2c9111 3
 ? vendor/
 `
 
-var expectedPorcInfo = PorcInfo{
+var expectedRepoInfo = RepoInfo{
 	branch:    "master",
 	commit:    "51c9c58e2175b768137c1e38865f394c76a7d49d",
 	remote:    "",
@@ -49,12 +49,12 @@ var expectedPorcInfo = PorcInfo{
 	},
 }
 
-func TestParsePorcInfo(t *testing.T) {
-	var pi = new(PorcInfo)
-	if err := pi.ParsePorcInfo(strings.NewReader(gitoutput)); err != nil {
+func TestParseRepoInfo(t *testing.T) {
+	var pi = new(RepoInfo)
+	if err := pi.ParseRepoInfo(strings.NewReader(gitoutput)); err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(&expectedPorcInfo, pi) {
+	if !reflect.DeepEqual(&expectedRepoInfo, pi) {
 		t.Logf("%#+v\n", pi)
 		t.FailNow()
 	}
