@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
@@ -28,7 +27,7 @@ var logLevels = []log.Level{
 var cwd string
 
 // Options defines command line arguments
-var Options struct {
+type Options struct {
 	Verbose []bool `short:"v" long:"verbose" description:"see more debug messages"`
 	Version bool   `long:"version" description:"show version info and exit"`
 	Dir     string `short:"d" long:"dir" description:"git repo location" value-name:"directory" default:"."`
@@ -60,7 +59,8 @@ func init() {
 		}
 	})()
 
-	var parser = flags.NewParser(&Options, flags.Default)
+	var options Options
+	var parser = flags.NewParser(&options, flags.Default)
 	longDesc := `Git status for your prompt, similar to Greg Ward's vcprompt
 
 	Prints according to FORMAT, which may contain:
@@ -83,7 +83,7 @@ func init() {
 			typ := err.(*flags.Error).Type
 			switch {
 			case typ == flags.ErrHelp:
-				parser.WriteHelp(os.Stdout)
+				break
 			case typ == flags.ErrCommandRequired && len(extraArgs[0]) == 0:
 				parser.WriteHelp(os.Stdout)
 			default:
@@ -93,10 +93,11 @@ func init() {
 		} else {
 			log.Fatalf("Exiting: %s", err.Error())
 		}
+		os.Exit(1)
 	}
 
 	// Get log level
-	verbosity, maxLevels := len(Options.Verbose), len(logLevels)
+	verbosity, maxLevels := len(options.Verbose), len(logLevels)
 	if verbosity > maxLevels-1 {
 		verbosity = maxLevels - 1
 	}
@@ -104,12 +105,12 @@ func init() {
 	log.Default.Level = logLevels[verbosity]
 
 	log.Debugf("Raw args:\n%v", args)
-	log.Debugf("Parsed args:\n%+v", Options)
+	log.Debugf("Parsed args:\n%+v", options)
 	if len(extraArgs) > 0 {
 		log.Debugf("Remaining args:\n%v", extraArgs)
 	}
 
-	if Options.Version {
+	if options.Version {
 		fmt.Println(version)
 		os.Exit(0)
 	}
@@ -121,15 +122,14 @@ func init() {
 func main() {
 	log.Debugf("Running gitprompt in directory %s", cwd)
 
-	var out string
-	switch {
-	case true:
-		out = run().Fmt()
-	default:
-		flag.Usage()
-		fmt.Println("\nOutside of a repository there will be no output.")
-		os.Exit(1)
-	}
-
-	fmt.Fprint(os.Stdout, out)
+	// var out string
+	// switch {
+	// case true:
+	//         out = run().Fmt()
+	// default:
+	//         flag.Usage()
+	//         fmt.Println("\nOutside of a repository there will be no output.")
+	//         os.Exit(1)
+	// }
+	fmt.Fprint(os.Stdout, run().Fmt())
 }
