@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-
 	"os"
 	"path"
 
-	log "github.com/subchen/go-log"
+	Log "github.com/sirupsen/logrus"
 )
 
 // GitArea holds status info
@@ -64,7 +63,7 @@ func (ri *RepoInfo) hasUnmerged() bool {
 	}
 	gitDir, err := PathToGitDir(cwd)
 	if err != nil {
-		log.Printf("error calling PathToGitDir: %s", err)
+		Log.Printf("error calling PathToGitDir: %s", err)
 		return false
 	}
 	// TODO figure out if output of MERGE_HEAD can be useful
@@ -72,7 +71,7 @@ func (ri *RepoInfo) hasUnmerged() bool {
 		if os.IsNotExist(err) {
 			return false
 		}
-		log.Printf("error reading MERGE_HEAD: %s", err)
+		Log.Printf("error reading MERGE_HEAD: %s", err)
 		return false
 	}
 	return true
@@ -93,7 +92,7 @@ func (ri *RepoInfo) Debug() string {
 // TODO should be configurable by the user
 //
 func (ri *RepoInfo) Fmt() string {
-	log.Printf("formatting output: %s", ri.Debug())
+	Log.Printf("formatting output: %s", ri.Debug())
 
 	var (
 		branchGlyph   = ""
@@ -159,7 +158,7 @@ func (ri *RepoInfo) Fmt() string {
 func run() *RepoInfo {
 	gitOut, err := GetGitOutput(cwd)
 	if err != nil {
-		log.Printf("error: %s", err)
+		Log.Printf("error: %s", err)
 		if err == ErrNotAGitRepo {
 			os.Exit(0)
 		}
@@ -171,7 +170,7 @@ func run() *RepoInfo {
 	repoInfo.workingDir = cwd
 
 	if err := repoInfo.ParseRepoInfo(gitOut); err != nil {
-		log.Errorln(err)
+		Log.Errorln(err)
 		os.Exit(1)
 	}
 

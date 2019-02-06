@@ -5,8 +5,18 @@ import (
 	"os"
 
 	flags "github.com/jessevdk/go-flags"
-	log "github.com/subchen/go-log"
+	Log "github.com/sirupsen/logrus"
 )
+
+// Log default logger
+// var Log = new(log.Logger)
+
+// Log Global logger
+// var Log = &log.Logger{
+//     Level:     log.WARN,
+//     Formatter: new(formatters.TextFormatter),
+//     Out:       os.Stderr,
+// }
 
 const (
 	logloc  = "/tmp/porcelain.log"
@@ -18,10 +28,10 @@ gitprompt version 0.0.1
 `
 )
 
-var logLevels = []log.Level{
-	log.WARN,
-	log.INFO,
-	log.DEBUG,
+var logLevels = []Log.Level{
+	Log.WarnLevel,
+	Log.InfoLevel,
+	Log.DebugLevel,
 }
 
 var cwd string
@@ -36,27 +46,17 @@ type Options struct {
 }
 
 func init() {
-	// flag.BoolVar(&debugFlag, "debug", false, "write logs to file ("+logloc+")")
-	// flag.BoolVar(&fmtFlag, "fmt", true, "print formatted output (default)")
-	// flag.BoolVar(&bashFmtFlag, "bash", false, "escape fmt output for bash")
-	// flag.BoolVar(&zshFmtFlag, "zsh", false, "escape fmt output for zsh")
-	// flag.BoolVar(&tmuxFmtFlag, "tmux", false, "escape fmt output for tmux")
-	// flag.StringVar(&cwd, "path", "", "show output for path instead of the working directory")
-	// flag.BoolVar(&versionFlag, "version", false, "print version and exit")
-
-	// logtostderr := flag.Bool("logtostderr", false, "write logs to stderr")
-	// flag.Parse()
-	log.Default.Level = log.WARN
+	// log.Default.Level = log.WARN
+	// Log.Level = Log.WarnLevel
+	Log.SetLevel(Log.WarnLevel)
 
 	// Use cli args if present, else test args
 	args := (func() []string {
 		if len(os.Args) > 1 {
 			return os.Args[1:]
 		}
-		log.Infoln("Using test arguments")
-		return []string{
-			"-v",
-		}
+		Log.Infoln("Using test arguments")
+		return []string{}
 	})()
 
 	var options Options
@@ -87,11 +87,11 @@ func init() {
 			case typ == flags.ErrCommandRequired && len(extraArgs[0]) == 0:
 				parser.WriteHelp(os.Stdout)
 			default:
-				log.Info(err.Error() + string(typ))
+				Log.Info(err.Error() + string(typ))
 				parser.WriteHelp(os.Stdout)
 			}
 		} else {
-			log.Fatalf("Exiting: %s", err.Error())
+			Log.Fatalf("Exiting: %s", err.Error())
 		}
 		os.Exit(1)
 	}
@@ -102,12 +102,12 @@ func init() {
 		verbosity = maxLevels - 1
 	}
 
-	log.Default.Level = logLevels[verbosity]
+	Log.SetLevel(logLevels[verbosity])
 
-	log.Debugf("Raw args:\n%v", args)
-	log.Debugf("Parsed args:\n%+v", options)
+	Log.Debugf("Raw args:\n%v", args)
+	Log.Debugf("Parsed args:\n%+v", options)
 	if len(extraArgs) > 0 {
-		log.Debugf("Remaining args:\n%v", extraArgs)
+		Log.Debugf("Remaining args:\n%v", extraArgs)
 	}
 
 	if options.Version {
@@ -120,7 +120,7 @@ func init() {
 }
 
 func main() {
-	log.Debugf("Running gitprompt in directory %s", cwd)
+	Log.Debugf("Running gitprompt in directory %s", cwd)
 
 	// var out string
 	// switch {
