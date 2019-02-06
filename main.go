@@ -6,6 +6,7 @@ import (
 
 	flags "github.com/jessevdk/go-flags"
 	log "github.com/sirupsen/logrus"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 const (
@@ -17,12 +18,8 @@ gitprompt version 0.0.1
 `
 )
 
-var logLevels = []log.Level{
-	log.WarnLevel,
-	log.InfoLevel,
-	log.DebugLevel,
-}
-
+// Exclude panic, fatal, and error from "verbose" levels
+var logLevels = log.AllLevels[3:]
 var cwd string
 
 // Options defines command line arguments
@@ -35,11 +32,15 @@ type Options struct {
 }
 
 func init() {
-	log.SetFormatter(&log.TextFormatter{
-		DisableColors:          false,
-		FullTimestamp:          false,
-		DisableLevelTruncation: true,
+	formatter := &prefixed.TextFormatter{
+		DisableColors:   false,
+		FullTimestamp:   true,
+		TimestampFormat: "15:04:05.000",
+	}
+	formatter.SetColorScheme(&prefixed.ColorScheme{
+		DebugLevelStyle: "blue+h",
 	})
+	log.SetFormatter(formatter)
 	log.SetLevel(log.WarnLevel)
 
 	// Use cli args if present, else test args
@@ -113,15 +114,6 @@ func init() {
 
 func main() {
 	log.Debugf("Running gitprompt in directory %s", cwd)
-
-	// var out string
-	// switch {
-	// case true:
-	//         out = run().Fmt()
-	// default:
-	//         flag.Usage()
-	//         fmt.Println("\nOutside of a repository there will be no output.")
-	//         os.Exit(1)
-	// }
+	// TODO: switch here to determine whether to output prompt or raw data
 	fmt.Fprintln(os.Stdout, run().Fmt())
 }

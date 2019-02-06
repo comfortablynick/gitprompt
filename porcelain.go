@@ -20,39 +20,23 @@ type GitArea struct {
 }
 
 func (a *GitArea) hasChanged() bool {
-	var changed bool
-	if a.added != 0 {
-		changed = true
-	}
-	if a.deleted != 0 {
-		changed = true
-	}
-	if a.modified != 0 {
-		changed = true
-	}
-	if a.copied != 0 {
-		changed = true
-	}
-	if a.renamed != 0 {
-		changed = true
-	}
-	return changed
+	return a.added+a.deleted+a.modified+a.copied+a.renamed != 0
 }
 
 // RepoInfo holds data about the repo
 type RepoInfo struct {
 	workingDir string
-
+	// Branch
 	branch   string
 	commit   string
 	remote   string
 	upstream string
 	ahead    int
 	behind   int
-
+	// Totals
 	untracked int
 	unmerged  int
-
+	// Status for unstaged/staged
 	Unstaged GitArea
 	Staged   GitArea
 }
@@ -63,7 +47,7 @@ func (ri *RepoInfo) hasUnmerged() bool {
 	}
 	gitDir, err := PathToGitDir(cwd)
 	if err != nil {
-		log.Printf("error calling PathToGitDir: %s", err)
+		log.Errorf("error calling PathToGitDir: %s", err)
 		return false
 	}
 	// TODO figure out if output of MERGE_HEAD can be useful
@@ -71,7 +55,7 @@ func (ri *RepoInfo) hasUnmerged() bool {
 		if os.IsNotExist(err) {
 			return false
 		}
-		log.Printf("error reading MERGE_HEAD: %s", err)
+		log.Errorf("error reading MERGE_HEAD: %s", err)
 		return false
 	}
 	return true
@@ -89,15 +73,14 @@ func (ri *RepoInfo) Debug() string {
 }
 
 // Fmt formats the output for the shell
-// TODO should be configurable by the user
-//
 func (ri *RepoInfo) Fmt() string {
-	log.Printf("formatting output: %s", ri.Debug())
+	// TODO: make format user-configurable
+	// Maybe with a TOML/ini file
+	log.Infof("Formatting output: %s", ri.Debug())
 
 	var (
-		branchGlyph   = ""
-		modifiedGlyph = "Δ"
-		// deletedGlyph   string = "＊"
+		branchGlyph    = ""
+		modifiedGlyph  = "Δ"
 		dirtyGlyph     = "✘"
 		cleanGlyph     = "✔"
 		untrackedGlyph = "?"
@@ -156,13 +139,13 @@ func (ri *RepoInfo) Fmt() string {
 }
 
 func run() *RepoInfo {
-	gitOut, err := GetGitOutput(cwd)
+	gitOut, err := GetGitStatusOutput(cwd)
 	if err != nil {
-		log.Printf("error: %s", err)
+		log.Errorf("error: %s", err)
 		if err == ErrNotAGitRepo {
 			os.Exit(0)
 		}
-		fmt.Printf("error: %s", err)
+		log.Errorf("error: %s", err)
 		os.Exit(1)
 	}
 
