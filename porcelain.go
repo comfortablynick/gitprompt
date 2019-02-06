@@ -101,29 +101,45 @@ func (ri *RepoInfo) Fmt() string {
 		func() string {
 			var buf bytes.Buffer
 			if ri.ahead > 0 {
-				buf.WriteString(fmt.Sprintf(" %s%d ", aheadArrow, ri.ahead))
+				if _, err := buf.WriteString(fmt.Sprintf(" %s%d ", aheadArrow, ri.ahead)); err != nil {
+					log.Errorf("Buffer error: %s", err)
+				}
 			}
 			if ri.behind > 0 {
-				buf.WriteString(fmt.Sprintf(" %s%d ", behindArrow, ri.behind))
+				if _, err := buf.WriteString(fmt.Sprintf(" %s%d ", behindArrow, ri.behind)); err != nil {
+					log.Errorf("Buffer error: %s", err)
+				}
 			}
 			return buf.String()
 		}(),
 		func() string {
 			var buf bytes.Buffer
 			if ri.untracked > 0 {
-				buf.WriteString(untrackedGlyph)
+				if _, err := buf.WriteString(untrackedGlyph); err != nil {
+					log.Errorf("Buffer error: %s", err)
+				}
 			} else {
-				buf.WriteRune(' ')
+				if _, err := buf.WriteRune(' '); err != nil {
+					log.Errorf("Buffer error: %s", err)
+				}
 			}
 			if ri.hasUnmerged() {
-				buf.WriteString(unmergedGlyph)
+				if _, err := buf.WriteString(unmergedGlyph); err != nil {
+					log.Errorf("Buffer error: %s", err)
+				}
 			} else {
-				buf.WriteRune(' ')
+				if _, err := buf.WriteRune(' '); err != nil {
+					log.Errorf("Buffer error: %s", err)
+				}
 			}
 			if ri.hasModified() {
-				buf.WriteString(modifiedGlyph)
+				if _, err := buf.WriteString(modifiedGlyph); err != nil {
+					log.Errorf("Buffer error: %s", err)
+				}
 			} else {
-				buf.WriteRune(' ')
+				if _, err := buf.WriteRune(' '); err != nil {
+					log.Errorf("Buffer error: %s", err)
+				}
 			}
 			// TODO star glyph
 			return buf.String()
@@ -141,9 +157,11 @@ func (ri *RepoInfo) Fmt() string {
 func run() *RepoInfo {
 	gitOut, err := GetGitStatusOutput(cwd)
 	if err != nil {
-		log.Errorf("error: %s", err)
+		// Just log this as Info so that we don't return
+		// any output by default when not in a repo
+		log.Infoln(err)
 		if err == ErrNotAGitRepo {
-			os.Exit(0)
+			os.Exit(1)
 		}
 		log.Errorf("error: %s", err)
 		os.Exit(1)

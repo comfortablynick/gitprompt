@@ -107,6 +107,12 @@ func init() {
 		fmt.Println(version)
 		os.Exit(0)
 	}
+
+	// Handle regular options
+	if options.Dir != "" {
+		cwd = options.Dir
+	}
+
 	if cwd == "" {
 		cwd, _ = os.Getwd() // #nosec
 	}
