@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // GitArea holds status info
@@ -47,7 +46,7 @@ func (ri *RepoInfo) hasUnmerged() bool {
 	}
 	gitDir, err := PathToGitDir(cwd)
 	if err != nil {
-		log.Errorf("error calling PathToGitDir: %s", err)
+		log.Printf("error calling PathToGitDir: %s", err)
 		return false
 	}
 	// TODO figure out if output of MERGE_HEAD can be useful
@@ -55,7 +54,7 @@ func (ri *RepoInfo) hasUnmerged() bool {
 		if os.IsNotExist(err) {
 			return false
 		}
-		log.Errorf("error reading MERGE_HEAD: %s", err)
+		log.Printf("error reading MERGE_HEAD: %s", err)
 		return false
 	}
 	return true
@@ -76,7 +75,7 @@ func (ri *RepoInfo) Debug() string {
 func (ri *RepoInfo) Fmt() string {
 	// TODO: make format user-configurable
 	// Maybe with a TOML/ini file
-	log.Infof("Formatting output: %s", ri.Debug())
+	log.Printf("Formatting output: %s", ri.Debug())
 
 	var (
 		branchGlyph    = ""
@@ -102,12 +101,12 @@ func (ri *RepoInfo) Fmt() string {
 			var buf bytes.Buffer
 			if ri.ahead > 0 {
 				if _, err := buf.WriteString(fmt.Sprintf(" %s%d ", aheadArrow, ri.ahead)); err != nil {
-					log.Errorf("Buffer error: %s", err)
+					log.Printf("Buffer error: %s", err)
 				}
 			}
 			if ri.behind > 0 {
 				if _, err := buf.WriteString(fmt.Sprintf(" %s%d ", behindArrow, ri.behind)); err != nil {
-					log.Errorf("Buffer error: %s", err)
+					log.Printf("Buffer error: %s", err)
 				}
 			}
 			return buf.String()
@@ -116,29 +115,29 @@ func (ri *RepoInfo) Fmt() string {
 			var buf bytes.Buffer
 			if ri.untracked > 0 {
 				if _, err := buf.WriteString(untrackedGlyph); err != nil {
-					log.Errorf("Buffer error: %s", err)
+					log.Printf("Buffer error: %s", err)
 				}
 			} else {
 				if _, err := buf.WriteRune(' '); err != nil {
-					log.Errorf("Buffer error: %s", err)
+					log.Printf("Buffer error: %s", err)
 				}
 			}
 			if ri.hasUnmerged() {
 				if _, err := buf.WriteString(unmergedGlyph); err != nil {
-					log.Errorf("Buffer error: %s", err)
+					log.Printf("Buffer error: %s", err)
 				}
 			} else {
 				if _, err := buf.WriteRune(' '); err != nil {
-					log.Errorf("Buffer error: %s", err)
+					log.Printf("Buffer error: %s", err)
 				}
 			}
 			if ri.hasModified() {
 				if _, err := buf.WriteString(modifiedGlyph); err != nil {
-					log.Errorf("Buffer error: %s", err)
+					log.Printf("Buffer error: %s", err)
 				}
 			} else {
 				if _, err := buf.WriteRune(' '); err != nil {
-					log.Errorf("Buffer error: %s", err)
+					log.Printf("Buffer error: %s", err)
 				}
 			}
 			// TODO star glyph
@@ -157,13 +156,12 @@ func (ri *RepoInfo) Fmt() string {
 func run() *RepoInfo {
 	gitOut, err := GetGitStatusOutput(cwd)
 	if err != nil {
-		// Just log this as Info so that we don't return
-		// any output by default when not in a repo
-		log.Infoln(err)
+		log.Printf("Git status error: %s", err)
 		if err == ErrNotAGitRepo {
-			os.Exit(1)
+			// Expected if calling from prompt
+			os.Exit(0)
 		}
-		log.Errorf("error: %s", err)
+		log.Printf("error: %s", err)
 		os.Exit(1)
 	}
 
@@ -171,7 +169,7 @@ func run() *RepoInfo {
 	repoInfo.workingDir = cwd
 
 	if err := repoInfo.ParseRepoInfo(gitOut); err != nil {
-		log.Errorln(err)
+		log.Printf("Error parsing git repo: %s", err)
 		os.Exit(1)
 	}
 

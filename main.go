@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 
 	flags "github.com/jessevdk/go-flags"
-	log "github.com/sirupsen/logrus"
-	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 const (
@@ -18,37 +18,25 @@ gitprompt version 0.0.1
 `
 )
 
-// Exclude panic, fatal, and error from "verbose" levels
-var logLevels = log.AllLevels[3:]
 var cwd string
 
 // Options defines command line arguments
 type Options struct {
-	Verbose []bool `short:"v" long:"verbose" description:"see more debug messages"`
+	Verbose bool   `short:"v" long:"verbose" description:"see debug messages"`
 	Version bool   `long:"version" description:"show version info and exit"`
-	Dir     string `short:"d" long:"dir" description:"git repo location" value-name:"directory" default:"."`
+	Dir     string `short:"d" long:"dir" description:"git repo location, if not cwd" value-name:"directory"`
 	Timeout int16  `short:"t" long:"timeout" description:"timeout for git cmds in ms" value-name:"timeout_ms" default:"100"`
 	Format  string `short:"f" long:"format" description:"printf-style format string for git prompt" value-name:"FORMAT" default:"[%n:%b]"`
 }
 
 func init() {
-	formatter := &prefixed.TextFormatter{
-		DisableColors:   false,
-		FullTimestamp:   true,
-		TimestampFormat: "15:04:05.000",
-	}
-	formatter.SetColorScheme(&prefixed.ColorScheme{
-		DebugLevelStyle: "blue+h",
-	})
-	log.SetFormatter(formatter)
-	log.SetLevel(log.WarnLevel)
-
 	// Use cli args if present, else test args
 	args := (func() []string {
 		if len(os.Args) > 1 {
 			return os.Args[1:]
 		}
-		log.Infoln("Using test arguments")
+		// Insert test args here
+		// To be used if no os.Args
 		return []string{}
 	})()
 
@@ -80,27 +68,28 @@ func init() {
 			case typ == flags.ErrCommandRequired && len(extraArgs[0]) == 0:
 				parser.WriteHelp(os.Stdout)
 			default:
-				log.Info(err.Error() + string(typ))
+				log.Println(err.Error() + string(typ))
 				parser.WriteHelp(os.Stdout)
 			}
 		} else {
-			log.Fatalf("Exiting: %s", err.Error())
+			fmt.Printf("Exiting: %s", err.Error())
 		}
 		os.Exit(1)
 	}
 
-	// Get log level
-	verbosity, maxLevels := len(options.Verbose), len(logLevels)
-	if verbosity > maxLevels-1 {
-		verbosity = maxLevels - 1
+	// Discard logs unless --verbose is set
+	logFile := ioutil.Discard
+
+	if options.Verbose {
+		logFile = os.Stderr
 	}
 
-	log.SetLevel(logLevels[verbosity])
+	log.SetOutput(logFile)
 
-	log.Debugf("Raw args:\n%v", args)
-	log.Debugf("Parsed args:\n%+v", options)
+	log.Printf("Raw args: %v", args)
+	log.Printf("Parsed args: %+v", options)
 	if len(extraArgs) > 0 {
-		log.Debugf("Remaining args:\n%v", extraArgs)
+		log.Printf("Remaining args: %v", extraArgs)
 	}
 
 	if options.Version {
@@ -114,12 +103,14 @@ func init() {
 	}
 
 	if cwd == "" {
-		cwd, _ = os.Getwd() // #nosec
+		if cwd, err = os.Getwd(); err != nil {
+			log.Printf("Error getting cwd: %s", err)
+		}
 	}
 }
 
 func main() {
-	log.Debugf("Running gitprompt in directory %s", cwd)
+	log.Printf("Running gitprompt in directory %s", cwd)
 	// TODO: switch here to determine whether to output prompt or raw data
 	fmt.Fprintln(os.Stdout, run().Fmt())
 }

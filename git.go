@@ -4,15 +4,15 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log"
 	"os/exec"
 	"strconv"
 	"strings"
 	"syscall"
-
-	log "github.com/sirupsen/logrus"
 )
 
-const notRepoStatus string = "exit status 128"
+const notRepoStatus = "exit status 128"
+const gitExe = "git"
 
 // ErrNotAGitRepo returned when no repo found
 var ErrNotAGitRepo = errors.New("not a git repo")
@@ -23,17 +23,17 @@ func GetGitStatusOutput(cwd string) (io.Reader, error) {
 		if err == ErrNotAGitRepo {
 			return nil, ErrNotAGitRepo
 		}
-		log.Debugf("error detecting work tree: %s", err)
+		log.Printf("error detecting work tree: %s", err)
 		return nil, err
 	} else if !ok {
 		return nil, ErrNotAGitRepo
 	}
 
 	var buf = new(bytes.Buffer)
-	cmd := exec.Command("git", "status", "--porcelain=v2", "--branch")
+	cmd := exec.Command(gitExe, "status", "--porcelain=v2", "--branch") // #nosec
 	cmd.Stdout = buf
 	cmd.Dir = cwd
-	log.Tracef("running %q", cmd.Args)
+	log.Printf("GetGitStatusOutput cmd: %q", cmd.Args)
 
 	if err := cmd.Run(); err != nil {
 		return nil, err
@@ -43,9 +43,9 @@ func GetGitStatusOutput(cwd string) (io.Reader, error) {
 
 // GetGitTag returns tag name for detatched head
 func GetGitTag(cwd string) (string, error) {
-	cmd := exec.Command("git", "describe", "--tags", "--exact-match")
+	cmd := exec.Command(gitExe, "describe", "--tags", "--exact-match") // #nosec
 	cmd.Dir = cwd
-	log.Tracef("running %q", cmd.Args)
+	log.Printf("GetGitTag cmd: %q", cmd.Args)
 
 	out, err := cmd.Output()
 	if err != nil {
@@ -56,9 +56,9 @@ func GetGitTag(cwd string) (string, error) {
 
 // PathToGitDir returns parsed root of git repo
 func PathToGitDir(cwd string) (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--absolute-git-dir")
+	cmd := exec.Command(gitExe, "rev-parse", "--absolute-git-dir") // #nosec
 	cmd.Dir = cwd
-	log.Tracef("running %q", cmd.Args)
+	log.Printf("PathToGitDir cmd: %q", cmd.Args)
 
 	out, err := cmd.Output()
 	if err != nil {
@@ -69,9 +69,9 @@ func PathToGitDir(cwd string) (string, error) {
 
 // IsInsideWorkTree returns bool to indicate if path is inside git tree
 func IsInsideWorkTree(cwd string) (bool, error) {
-	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
+	cmd := exec.Command(gitExe, "rev-parse", "--is-inside-work-tree") // #nosec
 	cmd.Dir = cwd
-	log.Tracef("running %q", cmd.Args)
+	log.Printf("IsInsideWorkTree cmd: %q", cmd.Args)
 
 	out, err := cmd.Output()
 	if err != nil {
