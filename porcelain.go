@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -49,8 +48,8 @@ func (ri *RepoInfo) hasUnmerged() bool {
 		log.Printf("error calling PathToGitDir: %s", err)
 		return false
 	}
-	// TODO figure out if output of MERGE_HEAD can be useful
-	if _, err := ioutil.ReadFile(path.Join(gitDir, "MERGE_HEAD")); err != nil {
+	// TODO: figure out if output of MERGE_HEAD can be useful
+	if _, err := os.Stat(path.Join(gitDir, "MERGE_HEAD")); err != nil {
 		if os.IsNotExist(err) {
 			return false
 		}
@@ -59,9 +58,11 @@ func (ri *RepoInfo) hasUnmerged() bool {
 	}
 	return true
 }
+
 func (ri *RepoInfo) hasModified() bool {
 	return ri.Unstaged.hasChanged()
 }
+
 func (ri *RepoInfo) isDirty() bool {
 	return ri.Staged.hasChanged()
 }
@@ -81,7 +82,7 @@ func (ri *RepoInfo) Fmt() string {
 		branchGlyph    = ""
 		modifiedGlyph  = "Δ"
 		dirtyGlyph     = "✘"
-		cleanGlyph     = "✔"
+		cleanGlyph     = "✓" //✔
 		untrackedGlyph = "?"
 		unmergedGlyph  = "‼"
 		aheadArrow     = "↑"
@@ -115,32 +116,31 @@ func (ri *RepoInfo) Fmt() string {
 			var buf bytes.Buffer
 			if ri.untracked > 0 {
 				if _, err := buf.WriteString(untrackedGlyph); err != nil {
-					log.Printf("Buffer error: %s", err)
+					log.Printf("Error writing untrackedGlyph: %s", err)
 				}
 			} else {
 				if _, err := buf.WriteRune(' '); err != nil {
-					log.Printf("Buffer error: %s", err)
+					log.Printf("Error writing rune: %s", err)
 				}
 			}
 			if ri.hasUnmerged() {
 				if _, err := buf.WriteString(unmergedGlyph); err != nil {
-					log.Printf("Buffer error: %s", err)
+					log.Printf("Error writing unmergedGlyph: %s", err)
 				}
 			} else {
 				if _, err := buf.WriteRune(' '); err != nil {
-					log.Printf("Buffer error: %s", err)
+					log.Printf("Error writing rune: %s", err)
 				}
 			}
 			if ri.hasModified() {
 				if _, err := buf.WriteString(modifiedGlyph); err != nil {
-					log.Printf("Buffer error: %s", err)
+					log.Printf("Error writing modifiedGlyph: %s", err)
 				}
 			} else {
 				if _, err := buf.WriteRune(' '); err != nil {
-					log.Printf("Buffer error: %s", err)
+					log.Printf("Error writing rune: %s", err)
 				}
 			}
-			// TODO star glyph
 			return buf.String()
 		}(),
 		// dirty/clean
@@ -161,7 +161,8 @@ func run() *RepoInfo {
 			// Expected if calling from prompt
 			os.Exit(0)
 		}
-		log.Printf("error: %s", err)
+		// Some other error -- print to console
+		fmt.Printf("error: %s", err)
 		os.Exit(1)
 	}
 

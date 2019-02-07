@@ -15,20 +15,20 @@ func consumeNext(s *bufio.Scanner) string {
 }
 
 // ParseRepoInfo begins parsing data returned from `git status`
-func (ri *RepoInfo) ParseRepoInfo(r io.Reader) error {
+func (ri *RepoInfo) ParseRepoInfo(r io.Reader) (err error) {
 	var s = bufio.NewScanner(r)
 
 	for s.Scan() {
 		if len(s.Text()) < 1 {
 			continue
 		}
-		ri.ParseLine(s.Text())
+		err = ri.ParseLine(s.Text())
 	}
-	return nil
+	return err
 }
 
 // ParseLine parses each line of `git status` porcelain v2 output
-func (ri *RepoInfo) ParseLine(line string) error {
+func (ri *RepoInfo) ParseLine(line string) (err error) {
 	s := bufio.NewScanner(strings.NewReader(line))
 	// switch to a word based scanner
 	s.Split(bufio.ScanWords)
@@ -36,18 +36,18 @@ func (ri *RepoInfo) ParseLine(line string) error {
 	for s.Scan() {
 		switch s.Text() {
 		case "#":
-			_ = ri.parseBranchInfo(s)
+			err = ri.parseBranchInfo(s)
 		case "1":
-			ri.parseTrackedFile(s)
+			err = ri.parseTrackedFile(s)
 		case "2":
-			ri.parseRenamedFile(s)
+			err = ri.parseRenamedFile(s)
 		case "u":
 			ri.unmerged++
 		case "?":
 			ri.untracked++
 		}
 	}
-	return nil
+	return err
 }
 
 func (ri *RepoInfo) parseBranchInfo(s *bufio.Scanner) (err error) {
@@ -58,8 +58,9 @@ func (ri *RepoInfo) parseBranchInfo(s *bufio.Scanner) (err error) {
 			ri.commit = consumeNext(s)
 		case "branch.head":
 			ri.branch = consumeNext(s)
-			if ri.branch == "(detached)" {
-				if tag, err := GetGitTag(cwd); err == nil {
+			if ri.branch == "(detached)" && !options.NoGitTag {
+				var tag string
+				if tag, err = GetGitTag(cwd); err == nil {
 					ri.branch = tag
 				}
 			}
@@ -92,19 +93,19 @@ func (ri *RepoInfo) parseAheadBehind(s *bufio.Scanner) error {
 
 // parseTrackedFile parses the porcelain v2 output for tracked entries
 // doc: https://git-scm.com/docs/git-status#_changed_tracked_entries
-func (ri *RepoInfo) parseTrackedFile(s *bufio.Scanner) error {
+func (ri *RepoInfo) parseTrackedFile(s *bufio.Scanner) (err error) {
 	// uses the word based scanner from ParseLine
 	var index int
 	for s.Scan() {
 		switch index {
 		case 0: // xy
-			ri.parseXY(s.Text())
+			err = ri.parseXY(s.Text())
 		default:
 			continue
 		}
 		index++
 	}
-	return nil
+	return err
 }
 
 func (ri *RepoInfo) parseXY(xy string) error {
