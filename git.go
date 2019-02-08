@@ -41,6 +41,19 @@ func GetGitStatusOutput(cwd string) (io.Reader, error) {
 	return buf, nil
 }
 
+// GetGitNumstat returns output of diff --numstat
+func GetGitNumstat(cwd string) (string, error) {
+	cmd := exec.Command(gitExe, "diff", "--numstat") // #nosec
+	cmd.Dir = cwd
+	log.Printf("GetGitNumstat cmd: %q", cmd.Args)
+
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
 // GetGitTag returns tag name for detatched head
 func GetGitTag(cwd string) (string, error) {
 	cmd := exec.Command(gitExe, "describe", "--tags", "--exact-match") // #nosec

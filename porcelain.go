@@ -32,8 +32,10 @@ type RepoInfo struct {
 	ahead    int
 	behind   int
 	// Totals
-	untracked int
-	unmerged  int
+	untracked  int
+	unmerged   int
+	insertions int
+	deletions  int
 	// Status for unstaged/staged
 	Unstaged GitArea
 	Staged   GitArea
@@ -169,10 +171,16 @@ func run() *RepoInfo {
 	var repoInfo = new(RepoInfo)
 	repoInfo.workingDir = cwd
 
-	if err := repoInfo.ParseRepoInfo(gitOut); err != nil {
+	if err = repoInfo.ParseRepoInfo(gitOut); err != nil {
 		log.Printf("Error parsing git repo: %s", err)
 		os.Exit(1)
 	}
-
+	diffOut, err := GetGitNumstat(cwd)
+	if err != nil {
+		log.Printf("Git diff error: %s", err)
+	}
+	if err = repoInfo.parseDiffNumstat(diffOut); err != nil {
+		log.Printf("Error parsing git diff: %v", err)
+	}
 	return repoInfo
 }

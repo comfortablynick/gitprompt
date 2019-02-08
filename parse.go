@@ -73,6 +73,26 @@ func (ri *RepoInfo) parseBranchInfo(s *bufio.Scanner) (err error) {
 	return err
 }
 
+func (ri *RepoInfo) parseDiffNumstat(s string) error {
+	// Get total count of added/deleted lines
+	lines := strings.Split(s, "\n")
+	for _, line := range lines {
+		stats := strings.Split(line, "\t")
+		ins, err := strconv.Atoi(stats[0])
+		if err != nil {
+			return err
+		}
+		ri.insertions += ins
+
+		del, err := strconv.Atoi(stats[1])
+		if err != nil {
+			return err
+		}
+		ri.deletions += del
+	}
+	return nil
+}
+
 func (ri *RepoInfo) parseAheadBehind(s *bufio.Scanner) error {
 	// uses the word based scanner from ParseLine
 	for s.Scan() {
