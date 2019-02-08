@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"regexp"
 )
 
 const (
@@ -120,12 +119,7 @@ func init() {
 	}
 }
 
-// Detent removes leading tab from string
-func detent(s string) string {
-	return regexp.MustCompile("(?m)^[\t]").ReplaceAllString(s, "")
-}
-
 func main() {
 	log.Printf("Running gitprompt in directory %s", cwd)
-	fmt.Fprint(os.Stdout, run().Fmt())
+	fmt.Print(run().Fmt())
 }

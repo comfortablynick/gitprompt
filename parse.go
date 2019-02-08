@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"io"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -12,6 +13,11 @@ func consumeNext(s *bufio.Scanner) string {
 		return s.Text()
 	}
 	return ""
+}
+
+// Detent removes leading tab from string
+func detent(s string) string {
+	return regexp.MustCompile("(?m)^[\t]").ReplaceAllString(s, "")
 }
 
 // ParseRepoInfo begins parsing data returned from `git status`
