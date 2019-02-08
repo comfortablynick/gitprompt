@@ -21,5 +21,5 @@ Definitions taken from: https://www.kernel.org/pub/software/scm/git/docs/gitglos
 
 ## Usage
 
-Run `gitprompt` without any options to get the colorful output :)
+Run `gitprompt` without any options to get a stream that can be used in a prompt.
 For all supported options see `gitprompt -h`.

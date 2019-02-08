@@ -24,19 +24,22 @@ func (a *GitArea) hasChanged() bool {
 // RepoInfo holds data about the repo
 type RepoInfo struct {
 	workingDir string
-	// Branch
+
+	// Local branch data
 	branch   string
 	commit   string
 	remote   string
 	upstream string
 	ahead    int
 	behind   int
-	// Totals
+
+	// Branch totals
 	untracked  int
 	unmerged   int
 	insertions int
 	deletions  int
-	// Status for unstaged/staged
+
+	// Status for staged/unstaged files
 	Unstaged GitArea
 	Staged   GitArea
 }
@@ -83,8 +86,8 @@ func (ri *RepoInfo) Fmt() string {
 	var (
 		branchGlyph    = ""
 		modifiedGlyph  = "Δ"
-		dirtyGlyph     = "✘"
-		cleanGlyph     = "✓" //✔
+		dirtyGlyph     = "✘" // ✗
+		cleanGlyph     = "✔" // ✓
 		untrackedGlyph = "?"
 		unmergedGlyph  = "‼"
 		aheadArrow     = "↑"
