@@ -19,6 +19,7 @@ gitprompt version 0.0.1
 
 // Options defines command line args
 type Options struct {
+	NoColor  bool
 	Verbose  bool
 	Version  bool
 	Dir      string
@@ -44,9 +45,10 @@ func init() {
 		return []string{}
 	})()
 
+	flag.BoolVar(&options.NoColor, "n", false, "do not print color on prompt")
 	flag.BoolVar(&options.Verbose, "v", false, "print verbose debug messages")
 	flag.BoolVar(&options.Version, "version", false, "show version info and exit")
-	flag.StringVar(&options.Dir, "d", ".", "git repo location, if not cwd")
+	flag.StringVar(&options.Dir, "d", "", "git repo location, if not cwd")
 	flag.StringVar(&options.Format, "f", "[%n:%b]", "printf-style format string for git prompt")
 	flag.StringVar(&options.Output, "o", "string", "output type: string, raw")
 	flag.BoolVar(&options.NoGitTag, "no-tag", false, "do not look for git tag if detached head")

@@ -141,6 +141,9 @@ func (ri *RepoInfo) Fmt() string {
 		aheadArrow     = "↑"
 		behindArrow    = "↓"
 	)
+	// Turn off color based on CLI option
+	color.NoColor = options.NoColor
+
 	cleanDirtyFmt := (func() (func(...interface {}) string) {
 		if ri.Unstaged.modified == 0 {
 			return color.New(color.FgGreen).SprintFunc()
