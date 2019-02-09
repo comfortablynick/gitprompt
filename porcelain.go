@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path"
+
 	"github.com/fatih/color"
 )
 
@@ -24,23 +25,20 @@ func (a *GitArea) hasChanged() bool {
 
 // RepoInfo holds data about the repo
 type RepoInfo struct {
-	workingDir 	string
-	gitDir 		string
-	// Local branch data
-	branch   	string
-	commit   	string
-	remote   	string
-	upstream 	string
-	ahead    	int
-	behind   	int
-	// Branch totals
-	untracked  	int
-	unmerged   	int
-	insertions 	int
-	deletions  	int
-	// Status for staged/unstaged files
-	Unstaged 	GitArea
-	Staged   	GitArea
+	workingDir string
+	gitDir     string
+	branch     string
+	commit     string
+	remote     string
+	upstream   string
+	ahead      int
+	behind     int
+	untracked  int
+	unmerged   int
+	insertions int
+	deletions  int
+	Unstaged   GitArea
+	Staged     GitArea
 }
 
 func (ri *RepoInfo) hasUnmerged() bool {
@@ -118,10 +116,10 @@ func (ri *RepoInfo) Debug() string {
 	deleted:    %4d
 	renamed:    %4d
 	copied:     %4d`, ri.workingDir, ri.gitDir, ri.branch, ri.commit, ri.remote, ri.upstream,
-	ri.ahead, ri.behind, ri.untracked, ri.unmerged, ri.insertions, ri.deletions,
-	ri.Unstaged.modified, ri.Unstaged.added, ri.Unstaged.deleted, ri.Unstaged.renamed,
-	ri.Unstaged.copied, ri.Staged.modified, ri.Staged.added, ri.Staged.deleted,
-	ri.Staged.renamed, ri.Staged.copied))
+		ri.ahead, ri.behind, ri.untracked, ri.unmerged, ri.insertions, ri.deletions,
+		ri.Unstaged.modified, ri.Unstaged.added, ri.Unstaged.deleted, ri.Unstaged.renamed,
+		ri.Unstaged.copied, ri.Staged.modified, ri.Staged.added, ri.Staged.deleted,
+		ri.Staged.renamed, ri.Staged.copied))
 }
 
 // TODO: parse first, then format if called for by user
@@ -144,7 +142,7 @@ func (ri *RepoInfo) Fmt() string {
 	// Turn off color based on CLI option
 	color.NoColor = options.NoColor
 
-	cleanDirtyFmt := (func() (func(...interface {}) string) {
+	cleanDirtyFmt := (func() func(...interface{}) string {
 		if ri.Unstaged.modified == 0 {
 			return color.New(color.FgGreen).SprintFunc()
 		}
