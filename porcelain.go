@@ -31,6 +31,7 @@ type RepoInfo struct {
 	commit     string
 	remote     string
 	upstream   string
+	stashed    bool
 	ahead      int
 	behind     int
 	untracked  int
@@ -94,6 +95,7 @@ func (ri *RepoInfo) Debug() string {
 	commit:     %v
 	remote:     %v
 	upstream:   %v
+	stashed:	%-v
 	ahead:      %4d
 	behind:     %4d
 	untracked:  %4d
@@ -116,7 +118,7 @@ func (ri *RepoInfo) Debug() string {
 	deleted:    %4d
 	renamed:    %4d
 	copied:     %4d`, ri.workingDir, ri.gitDir, ri.branch, ri.commit, ri.remote, ri.upstream,
-		ri.ahead, ri.behind, ri.untracked, ri.unmerged, ri.insertions, ri.deletions,
+		ri.stashed, ri.ahead, ri.behind, ri.untracked, ri.unmerged, ri.insertions, ri.deletions,
 		ri.Unstaged.modified, ri.Unstaged.added, ri.Unstaged.deleted, ri.Unstaged.renamed,
 		ri.Unstaged.copied, ri.Staged.modified, ri.Staged.added, ri.Staged.deleted,
 		ri.Staged.renamed, ri.Staged.copied))
@@ -241,5 +243,7 @@ func run() *RepoInfo {
 	if err = repoInfo.parseDiffNumstat(diffOut); err != nil {
 		log.Printf("Error parsing git diff: %v", err)
 	}
+
+	repoInfo.stashed = repoInfo.hasStash()
 	return repoInfo
 }
