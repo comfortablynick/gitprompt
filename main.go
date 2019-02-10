@@ -17,16 +17,23 @@ gitprompt version 0.0.1
 `
 )
 
-// Options defines command line args
+// Options defines command line args and options
 type Options struct {
-	NoColor  bool
-	Verbose  bool
-	Version  bool
-	Dir      string
-	Timeout  int16
-	Format   string
-	NoGitTag bool
-	Output   string
+	NoColor      bool
+	Verbose      bool
+	Version      bool
+	Dir          string
+	Timeout      int16
+	Format       string
+	NoGitTag     bool
+	Output       string
+	ShowVCS      bool
+	ShowBranch   bool
+	ShowRevision bool
+	ShowModified bool
+	ShowUnknown  bool
+	ShowStash    bool
+	ShowDiff     bool
 }
 
 var (
@@ -60,7 +67,7 @@ func init() {
 	  Prints based on [-f] FORMAT, which may contain:
 	  %n  show VC name
 	  %b  show branch
-	  %r  show remote (default: ".")
+	  %r  show remote
 	  %m  indicate uncomitted changes (modified/added/removed)
 	  %u  show untracked file count
 	  %a  show added file count
@@ -123,5 +130,40 @@ func init() {
 
 func main() {
 	log.Printf("Running gitprompt in directory %s", cwd)
+
+	format := options.Format
+	for i := 0; i < len(format); i++ {
+		if string(format[i]) == "%" {
+			i++
+			switch string(format[i]) {
+			case "n":
+				options.ShowVCS = true
+			case "b":
+				options.ShowBranch = true
+			case "r":
+				options.ShowRevision = true
+			case "u":
+				options.ShowUnknown = true
+			case "m":
+				options.ShowModified = true
+			case "d":
+				options.ShowDiff = true
+			case "%":
+			default:
+				fmt.Fprintf(os.Stderr, "error: invalid format string '%c'", format[i])
+				os.Exit(1)
+			}
+		}
+	}
+	log.Println(detent(fmt.Sprintf(`Options:
+	ShowVCS:      %v
+	ShowBranch:   %v
+	ShowRevision: %v
+	ShowUnknown:  %v
+	ShowModified: %v
+	ShowDiff:     %v	
+	`, options.ShowVCS, options.ShowBranch, options.ShowRevision, options.ShowUnknown,
+		options.ShowModified, options.ShowDiff)))
+
 	fmt.Print(run().Fmt())
 }

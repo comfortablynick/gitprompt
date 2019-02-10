@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/fatih/color"
 )
@@ -145,13 +146,16 @@ func (ri *RepoInfo) Fmt() string {
 	color.NoColor = options.NoColor
 
 	cleanDirtyFmt := (func() func(...interface{}) string {
-		if ri.Unstaged.modified == 0 {
-			return color.New(color.FgGreen).SprintFunc()
+		if ri.Unstaged.hasChanged() {
+			return color.New(color.FgHiRed).SprintFunc()
 		}
-		return color.New(color.FgMagenta).SprintFunc()
+		if ri.Staged.hasChanged() {
+			return color.New(color.FgHiYellow).SprintFunc()
+		}
+		return color.New(color.FgHiGreen).SprintFunc()
 	})()
 
-	return fmt.Sprintf("%s %s@%s %s %s %s",
+	return fmt.Sprintf("%s %s@%s %s %s %s %s",
 		branchGlyph,
 		cleanDirtyFmt(ri.branch),
 		cleanDirtyFmt(func() string {
@@ -176,32 +180,17 @@ func (ri *RepoInfo) Fmt() string {
 		}(),
 		func() string {
 			var buf bytes.Buffer
-			if ri.untracked > 0 {
-				if _, err := buf.WriteString(untrackedGlyph); err != nil {
-					log.Printf("Error writing untrackedGlyph: %s", err)
-				}
-			} else {
-				if _, err := buf.WriteRune(' '); err != nil {
-					log.Printf("Error writing rune: %s", err)
-				}
+			if ri.untracked == 0 {
+				untrackedGlyph = " "
 			}
-			if ri.hasUnmerged() {
-				if _, err := buf.WriteString(unmergedGlyph); err != nil {
-					log.Printf("Error writing unmergedGlyph: %s", err)
-				}
-			} else {
-				if _, err := buf.WriteRune(' '); err != nil {
-					log.Printf("Error writing rune: %s", err)
-				}
+			if !ri.hasUnmerged() {
+				unmergedGlyph = " "
 			}
-			if ri.Unstaged.hasChanged() {
-				if _, err := buf.WriteString(modifiedGlyph); err != nil {
-					log.Printf("Error writing modifiedGlyph: %s", err)
-				}
-			} else {
-				if _, err := buf.WriteRune(' '); err != nil {
-					log.Printf("Error writing rune: %s", err)
-				}
+			if !ri.Unstaged.hasChanged() {
+				modifiedGlyph = " "
+			}
+			if _, err := buf.WriteString(untrackedGlyph + unmergedGlyph + modifiedGlyph); err != nil {
+				log.Printf("Error writing glyphs: %s", err)
 			}
 			return buf.String()
 		}(),
@@ -211,6 +200,16 @@ func (ri *RepoInfo) Fmt() string {
 			}
 			return cleanGlyph
 		}(),
+		func() string {
+			var out string
+			if ri.insertions > 0 {
+				out += fmt.Sprintf("+%d", ri.insertions)
+			}
+			if ri.deletions > 0 {
+				out += fmt.Sprintf(" -%d", ri.deletions)
+			}
+			return strings.TrimSpace(out)
+		}(),
 	)
 }
 
@@ -218,12 +217,6 @@ func run() *RepoInfo {
 	gitOut, err := GetGitStatusOutput(cwd)
 	if err != nil {
 		log.Printf("Git status error: %s", err)
-		if err == ErrNotAGitRepo {
-			// Expected if calling from prompt
-			os.Exit(0)
-		}
-		// Some other error -- print to console
-		fmt.Printf("error: %s", err)
 		os.Exit(1)
 	}
 
@@ -235,13 +228,16 @@ func run() *RepoInfo {
 		os.Exit(1)
 	}
 
-	diffOut, err := GetGitNumstat(cwd)
-	if err != nil {
-		log.Printf("Git diff error: %s", err)
-	}
+	// Only get diff when there are changes
+	if repoInfo.Unstaged.hasChanged() {
+		diffOut, err := GetGitNumstat(cwd)
+		if err != nil {
+			log.Printf("Git diff error: %s", err)
+		}
 
-	if err = repoInfo.parseDiffNumstat(diffOut); err != nil {
-		log.Printf("Error parsing git diff: %v", err)
+		if err = repoInfo.parseDiffNumstat(diffOut); err != nil {
+			log.Printf("Error parsing git diff: %v", err)
+		}
 	}
 
 	repoInfo.stashed = repoInfo.hasStash()

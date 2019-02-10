@@ -17,7 +17,7 @@ func consumeNext(s *bufio.Scanner) string {
 
 // Detent removes leading tab from string
 func detent(s string) string {
-	return regexp.MustCompile("(?m)^[\t]").ReplaceAllString(s, "")
+	return regexp.MustCompile("(?m)^[\t]*").ReplaceAllString(s, "")
 }
 
 // ParseRepoInfo begins parsing data returned from `git status`
