@@ -213,6 +213,10 @@ func (ri *RepoInfo) Fmt() string {
 	)
 }
 
+func (ri *RepoInfo) fmtString() {
+	log.Println(ri)
+}
+
 func run() *RepoInfo {
 	gitOut, err := GetGitStatusOutput(cwd)
 	if err != nil {
