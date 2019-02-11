@@ -86,7 +86,10 @@ func (ri *RepoInfo) hasStash() bool {
 }
 
 // Debug prints repo info
-func (ri *RepoInfo) Debug() string {
+func (ri *RepoInfo) Debug(pretty bool) string {
+	if !pretty {
+		return fmt.Sprintf("%+v", ri)
+	}
 	return detent(fmt.Sprintf(`
 	RepoInfo
 	========
@@ -125,23 +128,25 @@ func (ri *RepoInfo) Debug() string {
 		ri.Staged.renamed, ri.Staged.copied))
 }
 
+var (
+	branchGlyph    = ""
+	modifiedGlyph  = "Δ"
+	dirtyGlyph     = "✘" // ✗
+	cleanGlyph     = "✔" // ✓
+	untrackedGlyph = "?"
+	unmergedGlyph  = "‼"
+	aheadArrow     = "↑"
+	behindArrow    = "↓"
+	stashGlyph     = "$"
+)
+
 // TODO: parse first, then format if called for by user
 
 // Fmt formats the output for the shell
 func (ri *RepoInfo) Fmt() string {
 	// TODO: make format user-configurable
-	log.Println(ri.Debug())
+	log.Println(ri.Debug(false))
 
-	var (
-		branchGlyph    = ""
-		modifiedGlyph  = "Δ"
-		dirtyGlyph     = "✘" // ✗
-		cleanGlyph     = "✔" // ✓
-		untrackedGlyph = "?"
-		unmergedGlyph  = "‼"
-		aheadArrow     = "↑"
-		behindArrow    = "↓"
-	)
 	// Turn off color based on CLI option
 	color.NoColor = options.NoColor
 
@@ -213,8 +218,55 @@ func (ri *RepoInfo) Fmt() string {
 	)
 }
 
-func (ri *RepoInfo) fmtString() {
-	log.Println(ri)
+func (ri *RepoInfo) fmtString() string {
+	log.Println(ri.Debug(false))
+
+	format := options.Format
+	var out string
+	for i := 0; i < len(format); i++ {
+		if string(format[i]) == "%" {
+			i++
+			switch string(format[i]) {
+			case "n":
+				out += "git"
+			case "b":
+				out += fmt.Sprintf("%s %s", branchGlyph, ri.branch)
+			case "r":
+				if ri.commit == "(initial)" {
+					out += ri.commit
+					break
+				}
+				out += ri.commit[:7]
+			case "u":
+				if ri.untracked > 0 {
+					out += untrackedGlyph
+				}
+			case "m":
+				if ri.Unstaged.modified > 0 {
+					out += modifiedGlyph
+				}
+			case "d":
+				if ri.insertions+ri.deletions != 0 {
+					out += fmt.Sprintf("+%d/-%d", ri.insertions, ri.deletions)
+				}
+			// case "d":
+			//     out += strconv.Itoa(ri.deletions)
+			// case "i":
+			//     out += strconv.Itoa(ri.insertions)
+			case "s":
+				if ri.stashed {
+					out += stashGlyph
+				}
+			case "%":
+				out += "%"
+			default:
+				out += string(format[i])
+			}
+			continue
+		}
+		out += string(format[i])
+	}
+	return strings.TrimSpace(out)
 }
 
 func run() *RepoInfo {
@@ -233,7 +285,7 @@ func run() *RepoInfo {
 	}
 
 	// Only get diff when there are changes
-	if repoInfo.Unstaged.hasChanged() {
+	if repoInfo.Unstaged.hasChanged() && options.ShowDiff {
 		diffOut, err := GetGitNumstat(cwd)
 		if err != nil {
 			log.Printf("Git diff error: %s", err)
@@ -244,6 +296,8 @@ func run() *RepoInfo {
 		}
 	}
 
-	repoInfo.stashed = repoInfo.hasStash()
+	if options.ShowStash {
+		repoInfo.stashed = repoInfo.hasStash()
+	}
 	return repoInfo
 }

@@ -52,11 +52,13 @@ func init() {
 		return []string{}
 	})()
 
+	const defaultFormat = "%b %m %d %u %s"
+
 	flag.BoolVar(&options.NoColor, "n", false, "do not print color on prompt")
 	flag.BoolVar(&options.Verbose, "v", false, "print verbose debug messages")
 	flag.BoolVar(&options.Version, "version", false, "show version info and exit")
 	flag.StringVar(&options.Dir, "d", "", "git repo location, if not cwd")
-	flag.StringVar(&options.Format, "f", "[%n:%b]", "printf-style format string for git prompt")
+	flag.StringVar(&options.Format, "f", defaultFormat, "printf-style format string for git prompt")
 	flag.StringVar(&options.Output, "o", "string", "output type: string, raw")
 	flag.BoolVar(&options.NoGitTag, "no-tag", false, "do not look for git tag if detached head")
 
@@ -67,14 +69,12 @@ func init() {
 	  Prints based on [-f] FORMAT, which may contain:
 	  %n  show VC name
 	  %b  show branch
-	  %r  show remote
+	  %r  show commit
 	  %m  indicate uncomitted changes (modified/added/removed)
-	  %u  show untracked file count
-	  %a  show added file count
-	  %d  show deleted file count
-	  %s  show stash count
-	  %x  show insertion count
-	  %y  show deletion count
+	  %u  show untracked files
+	  %a  show added files
+	  %s  show stashes
+	  %d  show diff lines, ex: "+20/-10"
 
 	[-o=raw]
 	  Prints each value on a new line for easy parsing
@@ -102,9 +102,7 @@ func init() {
 	}
 
 	log.SetOutput(logFile)
-
 	log.Printf("Raw args: %v", args)
-	log.Printf("Parsed args: %+v", options)
 
 	if len(flag.Args()) > 0 {
 		log.Printf("Remaining args: %+v", flag.Args())
@@ -128,9 +126,7 @@ func init() {
 	}
 }
 
-func main() {
-	log.Printf("Running gitprompt in directory %s", cwd)
-
+func parseFormatString() {
 	format := options.Format
 	for i := 0; i < len(format); i++ {
 		if string(format[i]) == "%" {
@@ -144,26 +140,29 @@ func main() {
 				options.ShowRevision = true
 			case "u":
 				options.ShowUnknown = true
+			case "s":
+				options.ShowStash = true
 			case "m":
 				options.ShowModified = true
 			case "d":
 				options.ShowDiff = true
 			case "%":
 			default:
-				fmt.Fprintf(os.Stderr, "error: invalid format string '%c'", format[i])
+				fmt.Fprintf(os.Stderr, "error: invalid format string '%%%c'", format[i])
 				os.Exit(1)
 			}
 		}
 	}
-	log.Println(detent(fmt.Sprintf(`Options:
-	ShowVCS:      %v
-	ShowBranch:   %v
-	ShowRevision: %v
-	ShowUnknown:  %v
-	ShowModified: %v
-	ShowDiff:     %v	
-	`, options.ShowVCS, options.ShowBranch, options.ShowRevision, options.ShowUnknown,
-		options.ShowModified, options.ShowDiff)))
+}
 
-	fmt.Print(run().Fmt())
+func main() {
+	log.Printf("Running gitprompt in directory %s", cwd)
+
+	if options.Output == "string" {
+		parseFormatString()
+		fmt.Print(run().fmtString())
+	} else {
+		fmt.Print(run().Fmt())
+	}
+	log.Printf("Options: %+v", options)
 }

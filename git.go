@@ -19,16 +19,6 @@ var ErrNotAGitRepo = errors.New("not a git repo")
 
 // GetGitStatusOutput returns a buffer of git status command output
 func GetGitStatusOutput(cwd string) (io.Reader, error) {
-	// if ok, err := IsInsideWorkTree(cwd); err != nil {
-	//     if err == ErrNotAGitRepo {
-	//         return nil, ErrNotAGitRepo
-	//     }
-	//     log.Printf("error detecting work tree: %s", err)
-	//     return nil, err
-	// } else if !ok {
-	//     return nil, ErrNotAGitRepo
-	// }
-
 	var buf = new(bytes.Buffer)
 	cmd := exec.Command(gitExe, "status", "--porcelain=v2", "--branch") // #nosec
 	cmd.Stdout = buf
