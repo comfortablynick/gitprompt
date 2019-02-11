@@ -142,6 +142,17 @@ var (
 
 // TODO: parse first, then format if called for by user
 
+// fmtCleanDirty changes color depending on repo status
+func (ri *RepoInfo) fmtCleanDirty(s string) string {
+	if ri.Unstaged.hasChanged() {
+		return color.HiRedString(s)
+	}
+	if ri.Staged.hasChanged() {
+		return color.HiYellowString(s)
+	}
+	return color.HiGreenString(s)
+}
+
 // Fmt formats the output for the shell
 func (ri *RepoInfo) Fmt() string {
 	// TODO: make format user-configurable
@@ -218,6 +229,9 @@ func (ri *RepoInfo) Fmt() string {
 	)
 }
 
+// TODO: define custom format function that takes color param
+
+// fmtString parses user-supplied format string
 func (ri *RepoInfo) fmtString() string {
 	log.Println(ri.Debug(false))
 
@@ -230,29 +244,34 @@ func (ri *RepoInfo) fmtString() string {
 			case "n":
 				out += "git"
 			case "b":
-				out += fmt.Sprintf("%s %s", branchGlyph, ri.branch)
+				out += fmt.Sprintf("%s %s", branchGlyph, ri.fmtCleanDirty(ri.branch))
 			case "r":
-				if ri.commit == "(initial)" {
-					out += ri.commit
-					break
-				}
-				out += ri.commit[:7]
+				out += ri.fmtCleanDirty(func() string {
+					if ri.commit == "(initial)" {
+						return ri.commit
+					}
+					return ri.commit[:7]
+				}())
 			case "u":
 				if ri.untracked > 0 {
-					out += untrackedGlyph
+					out += color.HiYellowString(untrackedGlyph)
 				}
 			case "m":
 				if ri.Unstaged.modified > 0 {
-					out += modifiedGlyph
+					out += color.HiBlueString(modifiedGlyph)
 				}
 			case "d":
 				if ri.insertions+ri.deletions != 0 {
-					out += fmt.Sprintf("+%d/-%d", ri.insertions, ri.deletions)
+					out += color.HiBlueString(func() string {
+						if ri.insertions != 0 && ri.deletions != 0 {
+							return fmt.Sprintf("+%d/-%d", ri.insertions, ri.deletions)
+						}
+						if ri.insertions != 0 {
+							return fmt.Sprintf("+%d", ri.insertions)
+						}
+						return fmt.Sprintf("-%d", ri.deletions)
+					}())
 				}
-			// case "d":
-			//     out += strconv.Itoa(ri.deletions)
-			// case "i":
-			//     out += strconv.Itoa(ri.insertions)
 			case "s":
 				if ri.stashed {
 					out += stashGlyph

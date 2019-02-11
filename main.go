@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/fatih/color"
 )
 
 const (
@@ -15,6 +17,7 @@ gitprompt version 0.0.1
 © 2019 Nicholas Murphy
 (github.com/comfortablynick)
 `
+	defaultFormat = "%b@%r %u %m %d %s"
 )
 
 // Options defines command line args and options
@@ -51,8 +54,6 @@ func init() {
 		// To be used if no os.Args
 		return []string{}
 	})()
-
-	const defaultFormat = "%b %m %d %u %s"
 
 	flag.BoolVar(&options.NoColor, "n", false, "do not print color on prompt")
 	flag.BoolVar(&options.Verbose, "v", false, "print verbose debug messages")
@@ -116,6 +117,10 @@ func init() {
 	// Handle regular options
 	if options.Dir != "" {
 		cwd = options.Dir
+	}
+
+	if options.NoColor {
+		color.NoColor = true
 	}
 
 	if cwd == "" {
