@@ -17,26 +17,28 @@ gitprompt version 0.0.1
 © 2019 Nicholas Murphy
 (github.com/comfortablynick)
 `
-	defaultFormat = "%b@%r %u %m %d %s"
+	defaultFormat = "%g %b%a|%m%d%u%t|%s"
 )
 
 // Options defines command line args and options
 type Options struct {
-	NoColor      bool
-	Verbose      bool
-	Version      bool
-	Dir          string
-	Timeout      int16
-	Format       string
-	NoGitTag     bool
-	Output       string
-	ShowVCS      bool
-	ShowBranch   bool
-	ShowRevision bool
-	ShowModified bool
-	ShowUnknown  bool
-	ShowStash    bool
-	ShowDiff     bool
+	NoColor              bool
+	Verbose              bool
+	Version              bool
+	Dir                  string
+	Timeout              int16
+	Format               string
+	NoGitTag             bool
+	Output               string
+	ShowVCS              bool
+	ShowAheadBehind      bool
+	ShowBranch           bool
+	ShowRevision         bool
+	ShowUnstagedModified bool
+	ShowStagedModified   bool
+	ShowUnknown          bool
+	ShowStash            bool
+	ShowDiff             bool
 }
 
 var (
@@ -68,14 +70,17 @@ func init() {
 
 	[-o=string]
 	  Prints based on [-f] FORMAT, which may contain:
-	  %n  show VC name
-	  %b  show branch
-	  %r  show commit
-	  %m  indicate uncomitted changes (modified/added/removed)
-	  %u  show untracked files
-	  %a  show added files
-	  %s  show stashes
-	  %d  show diff lines, ex: "+20/-10"
+	  %g  branch glyph ()
+	  %n  VC name
+	  %b  commits ahead/behind remote
+	  %b  branch
+	  %r  current commit hash
+	  %m  unstaged changes (modified/added/removed)
+	  %s  staged changes (modified/added/removed)
+	  %u  untracked files
+	  %a  added files
+	  %d  diff lines, ex: "+20/-10"
+	  %t  stashed files indicator
 
 	[-o=raw]
 	  Prints each value on a new line for easy parsing
@@ -137,6 +142,8 @@ func parseFormatString() {
 		if string(format[i]) == "%" {
 			i++
 			switch string(format[i]) {
+			case "a":
+				options.ShowAheadBehind = true
 			case "n":
 				options.ShowVCS = true
 			case "b":
@@ -145,12 +152,15 @@ func parseFormatString() {
 				options.ShowRevision = true
 			case "u":
 				options.ShowUnknown = true
-			case "s":
-				options.ShowStash = true
 			case "m":
-				options.ShowModified = true
+				options.ShowUnstagedModified = true
+			case "s":
+				options.ShowStagedModified = true
 			case "d":
 				options.ShowDiff = true
+			case "t":
+				options.ShowStash = true
+			case "g": // Show branch glyph
 			case "%":
 			default:
 				fmt.Fprintf(os.Stderr, "error: invalid format string '%%%c'", format[i])

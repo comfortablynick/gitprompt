@@ -24,6 +24,10 @@ func (a *GitArea) hasChanged() bool {
 	return a.added+a.deleted+a.modified+a.copied+a.renamed != 0
 }
 
+func (a *GitArea) changeCount() int {
+	return a.added + a.deleted + a.modified + a.copied + a.renamed
+}
+
 // RepoInfo holds data about the repo
 type RepoInfo struct {
 	workingDir string
@@ -99,7 +103,7 @@ func (ri *RepoInfo) Debug(pretty bool) string {
 	commit:     %v
 	remote:     %v
 	upstream:   %v
-	stashed:	%-v
+	stashedd:   %-v
 	ahead:      %4d
 	behind:     %4d
 	untracked:  %4d
@@ -241,38 +245,35 @@ func (ri *RepoInfo) fmtString() string {
 		if string(format[i]) == "%" {
 			i++
 			switch string(format[i]) {
+			case "g":
+				out += branchGlyph
+			case "a":
+				if ri.ahead+ri.behind != 0 {
+					out += color.YellowString(ri.fmtAheadBehind())
+				}
 			case "n":
 				out += "git"
 			case "b":
-				out += fmt.Sprintf("%s %s", branchGlyph, ri.fmtCleanDirty(ri.branch))
+				out += ri.fmtCleanDirty(ri.branch)
 			case "r":
-				out += ri.fmtCleanDirty(func() string {
-					if ri.commit == "(initial)" {
-						return ri.commit
-					}
-					return ri.commit[:7]
-				}())
+				out += ri.fmtCleanDirty(ri.fmtCommit())
 			case "u":
 				if ri.untracked > 0 {
 					out += color.HiYellowString(untrackedGlyph)
 				}
 			case "m":
-				if ri.Unstaged.modified > 0 {
-					out += color.HiBlueString(modifiedGlyph)
+				if ri.Unstaged.hasChanged() {
+					out += color.HiRedString(fmt.Sprintf("%s%d", modifiedGlyph, ri.Unstaged.changeCount()))
+				}
+			case "s":
+				if ri.Staged.hasChanged() {
+					out += color.GreenString(fmt.Sprintf("%s%d", modifiedGlyph, ri.Staged.changeCount()))
 				}
 			case "d":
 				if ri.insertions+ri.deletions != 0 {
-					out += color.HiBlueString(func() string {
-						if ri.insertions != 0 && ri.deletions != 0 {
-							return fmt.Sprintf("+%d/-%d", ri.insertions, ri.deletions)
-						}
-						if ri.insertions != 0 {
-							return fmt.Sprintf("+%d", ri.insertions)
-						}
-						return fmt.Sprintf("-%d", ri.deletions)
-					}())
+					out += color.HiRedString(ri.fmtDiffStats())
 				}
-			case "s":
+			case "t":
 				if ri.stashed {
 					out += stashGlyph
 				}
@@ -285,7 +286,37 @@ func (ri *RepoInfo) fmtString() string {
 		}
 		out += string(format[i])
 	}
-	return strings.TrimSpace(out)
+	return standardizeSpaces(out)
+}
+
+func (ri *RepoInfo) fmtCommit() string {
+	if ri.commit == "(initial)" {
+		return ri.commit
+	}
+	return ri.commit[:7]
+}
+
+func (ri *RepoInfo) fmtAheadBehind() string {
+	var ab string
+	if ri.ahead != 0 {
+		ab += fmt.Sprintf("%s%d", aheadArrow, ri.ahead)
+	}
+	if ri.behind != 0 {
+		ab += fmt.Sprintf("%s%d", behindArrow, ri.behind)
+	}
+	return ab
+}
+
+func (ri *RepoInfo) fmtDiffStats() string {
+	return func() string {
+		if ri.insertions != 0 && ri.deletions != 0 {
+			return fmt.Sprintf("+%d/-%d", ri.insertions, ri.deletions)
+		}
+		if ri.insertions != 0 {
+			return fmt.Sprintf("+%d", ri.insertions)
+		}
+		return fmt.Sprintf("-%d", ri.deletions)
+	}()
 }
 
 func run() *RepoInfo {
