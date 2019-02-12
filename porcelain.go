@@ -256,6 +256,8 @@ func (ri *RepoInfo) fmtString() string {
 			case "b":
 				out += ri.fmtCleanDirty(ri.branch)
 			case "r":
+				out += ri.remote
+			case "c":
 				out += ri.fmtCleanDirty(ri.fmtCommit())
 			case "u":
 				if ri.untracked > 0 {
@@ -296,6 +298,20 @@ func (ri *RepoInfo) fmtCommit() string {
 	return ri.commit[:7]
 }
 
+func (ri *RepoInfo) fmtRemote() string {
+	if ri.remote == "" {
+		return "_NO_REMOTE_TRACKING_"
+	}
+	return ri.remote
+}
+
+func (ri *RepoInfo) fmtUpstream() string {
+	if ri.upstream == "" {
+		return "."
+	}
+	return ri.upstream
+}
+
 func (ri *RepoInfo) fmtAheadBehind() string {
 	var ab string
 	if ri.ahead != 0 {
@@ -317,6 +333,42 @@ func (ri *RepoInfo) fmtDiffStats() string {
 		}
 		return fmt.Sprintf("-%d", ri.deletions)
 	}()
+}
+
+/*
+	printf "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n" \
+	  "${branch}${state}" \
+	  "${remote}" \
+	  "${remote_url}" \
+	  "${upstream}" \
+	  "${num_staged}" \
+	  "${num_conflicts}" \
+	  "${num_changed}" \
+	  "${num_untracked}" \
+	  "${num_stashed}" \
+	  "${clean}"
+*/
+
+// FmtRaw outputs parsable status (line-delimited)
+func (ri *RepoInfo) FmtRaw() string {
+	return fmt.Sprintf("%v\n%v\n%v\n%v\n%v\n%d\n%v\n%v\n%v\n%v\n%v\n%v",
+		ri.branch,
+		ri.fmtRemote(),
+		".",
+		ri.fmtUpstream(),
+		ri.Staged.modified,
+		0, // num_conflicts?
+		ri.Unstaged.modified,
+		ri.untracked,
+		0, // num_stashed
+		func() int8 {
+			if ri.Unstaged.hasChanged() {
+				return 1
+			}
+			return 0
+		}(),
+		ri.insertions,
+		ri.deletions)
 }
 
 func run() *RepoInfo {

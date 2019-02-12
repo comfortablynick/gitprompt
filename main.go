@@ -17,7 +17,7 @@ gitprompt version 0.0.1
 © 2019 Nicholas Murphy
 (github.com/comfortablynick)
 `
-	defaultFormat = "%g %b%a|%m%d%u%t|%s"
+	defaultFormat = "%g %b%a %m%d%u%t %s"
 )
 
 // Options defines command line args and options
@@ -33,7 +33,8 @@ type Options struct {
 	ShowVCS              bool
 	ShowAheadBehind      bool
 	ShowBranch           bool
-	ShowRevision         bool
+	ShowRemote           bool
+	ShowCommit           bool
 	ShowUnstagedModified bool
 	ShowStagedModified   bool
 	ShowUnknown          bool
@@ -62,30 +63,36 @@ func init() {
 	flag.BoolVar(&options.Version, "version", false, "show version info and exit")
 	flag.StringVar(&options.Dir, "d", "", "git repo location, if not cwd")
 	flag.StringVar(&options.Format, "f", defaultFormat, "printf-style format string for git prompt")
-	flag.StringVar(&options.Output, "o", "string", "output type: string, raw")
+	flag.StringVar(&options.Output, "o", "string", "output type: string, raw, {1,2,3...}")
 	flag.BoolVar(&options.NoGitTag, "no-tag", false, "do not look for git tag if detached head")
 
 	epilog := `
 	Output Examples:
 
-	[-o=string]
+	[-o=s/string]
 	  Prints based on [-f] FORMAT, which may contain:
 	  %g  branch glyph ()
 	  %n  VC name
-	  %b  commits ahead/behind remote
 	  %b  branch
-	  %r  current commit hash
+	  %r  remote
+	  %a  commits ahead/behind remote
+	  %c  current commit hash
 	  %m  unstaged changes (modified/added/removed)
 	  %s  staged changes (modified/added/removed)
 	  %u  untracked files
-	  %a  added files
 	  %d  diff lines, ex: "+20/-10"
 	  %t  stashed files indicator
 
-	[-o=raw]
+	[-o=r/raw]
 	  Prints each value on a new line for easy parsing
-	`
 
+	[-o={1,2,3...}]
+	  Presets: sensible presets for ease of use
+		
+	  1: [%n:%b] (vcprompt default)
+	  2: %b %c %a %u %m
+	  3: %g %b@%c %a %u %m %s (similar to porcelain)
+	`
 	flag.Usage = func() {
 		usageMsg := `
 		Usage: gitprompt [-h] [-v] [-d DIR] [-f FORMAT]
@@ -110,7 +117,8 @@ func init() {
 	log.SetOutput(logFile)
 	log.Printf("Raw args: %v", args)
 
-	if len(flag.Args()) > 0 {
+	remaining := flag.Args()
+	if len(remaining) > 0 {
 		log.Printf("Remaining args: %+v", flag.Args())
 	}
 
@@ -126,6 +134,52 @@ func init() {
 
 	if options.NoColor {
 		color.NoColor = true
+	}
+
+	if options.Output == "r" {
+		options.Output = "raw"
+	}
+	if options.Output == "s" {
+		options.Output = "string"
+	}
+
+	presets := [3]string{
+		"[%n:%b]",
+		"%b %c %a %u %m",
+		"%g %b@%c %a %u %m %s",
+	}
+
+	switch options.Output {
+	case "raw":
+		options.ShowAheadBehind = true
+		options.ShowBranch = true
+		options.ShowDiff = true
+		options.ShowCommit = true
+		options.ShowStagedModified = true
+		options.ShowStash = true
+		options.ShowUnknown = true
+		options.ShowUnstagedModified = true
+	case "1":
+		// if len(remaining) == 0 {
+		//     fmt.Println("error: must supply int for preset")
+		//     os.Exit(1)
+		// }
+		// presetNo, err := strconv.Atoi(remaining[0])
+		// if err != nil {
+		//     fmt.Printf("preset error: %v", err)
+		// }
+		options.Format = presets[0]
+		options.Output = "string"
+	case "2":
+		options.Format = presets[1]
+		options.Output = "string"
+	case "3":
+		options.Format = presets[2]
+		options.Output = "string"
+	case "string":
+	default:
+		fmt.Printf("error: invalid output format `%v'", options.Output)
+		os.Exit(1)
 	}
 
 	if cwd == "" {
@@ -148,8 +202,8 @@ func parseFormatString() {
 				options.ShowVCS = true
 			case "b":
 				options.ShowBranch = true
-			case "r":
-				options.ShowRevision = true
+			case "c":
+				options.ShowCommit = true
 			case "u":
 				options.ShowUnknown = true
 			case "m":
@@ -175,9 +229,12 @@ func main() {
 
 	if options.Output == "string" {
 		parseFormatString()
-		fmt.Print(run().fmtString())
+		fmt.Println(run().fmtString())
 	} else {
-		fmt.Print(run().Fmt())
+
+		fmt.Println(run().FmtRaw())
 	}
+
+	// fmt.Print(run().Fmt())
 	log.Printf("Options: %+v", options)
 }
