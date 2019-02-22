@@ -118,8 +118,9 @@ func (ri *RepoInfo) parseTrackedFile(s *bufio.Scanner) (err error) {
 	var index int
 	for s.Scan() {
 		switch index {
-		case 0: // xy
-			err = ri.parseXY(s.Text())
+		case 0: // xy status code
+			err = ri.Staged.parseModified(s.Text()[:1])
+			err = ri.Unstaged.parseModified(s.Text()[1:])
 		default:
 			continue
 		}
@@ -128,31 +129,20 @@ func (ri *RepoInfo) parseTrackedFile(s *bufio.Scanner) (err error) {
 	return err
 }
 
-func (ri *RepoInfo) parseXY(xy string) error {
-	switch xy[:1] { // parse staged
+// parseModified parses the xy status code from porcelain v2
+// and assigns it to the Staged or Unstaged GitArea vars
+func (ga *GitArea) parseModified(c string) error {
+	switch c {
 	case "M":
-		ri.Staged.modified++
+		ga.modified++
 	case "A":
-		ri.Staged.added++
+		ga.added++
 	case "D":
-		ri.Staged.deleted++
+		ga.deleted++
 	case "R":
-		ri.Staged.renamed++
+		ga.renamed++
 	case "C":
-		ri.Staged.copied++
-	}
-
-	switch xy[1:] { // parse unstaged
-	case "M":
-		ri.Unstaged.modified++
-	case "A":
-		ri.Unstaged.added++
-	case "D":
-		ri.Unstaged.deleted++
-	case "R":
-		ri.Unstaged.renamed++
-	case "C":
-		ri.Unstaged.copied++
+		ga.copied++
 	}
 	return nil
 }
