@@ -160,14 +160,6 @@ func init() {
 		options.ShowUnknown = true
 		options.ShowUnstagedModified = true
 	case "1":
-		// if len(remaining) == 0 {
-		//     fmt.Println("error: must supply int for preset")
-		//     os.Exit(1)
-		// }
-		// presetNo, err := strconv.Atoi(remaining[0])
-		// if err != nil {
-		//     fmt.Printf("preset error: %v", err)
-		// }
 		options.Format = presets[0]
 		options.Output = "string"
 	case "2":
