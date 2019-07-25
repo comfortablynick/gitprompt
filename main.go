@@ -29,6 +29,7 @@ type Options struct {
 	Timeout              int16
 	Format               string
 	NoGitTag             bool
+	Simple               bool
 	Output               string
 	ShowVCS              bool
 	ShowAheadBehind      bool
@@ -65,6 +66,7 @@ func init() {
 	flag.StringVar(&options.Format, "f", defaultFormat, "printf-style format string for git prompt")
 	flag.StringVar(&options.Output, "o", "string", "output type: string, raw, {1,2,3...}")
 	flag.BoolVar(&options.NoGitTag, "no-tag", false, "do not look for git tag if detached head")
+	flag.BoolVar(&options.Simple, "s", false, "simple mode; emulates default bash git prompt")
 
 	epilog := `
 	Output Examples:
@@ -218,6 +220,12 @@ func parseFormatString() {
 
 func main() {
 	log.Printf("Running gitprompt in directory %s", cwd)
+
+	if options.Simple {
+		log.Println("Simple mode")
+		runSimple()
+		return
+	}
 
 	if options.Output == "string" {
 		parseFormatString()
